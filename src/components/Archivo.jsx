@@ -4,7 +4,7 @@ import { U } from '../utils';
 import Modal from './Modal';
 
 const Archivo = ({ type }) => {
-  const { data, addItem, deleteItem, setCurrentView } = useAppData();
+  const { data, addItem, removeItem, setCurrentView } = useAppData();
   const [isModalOpen, setIsModalOpen]   = useState(false);
   const [viewingPdf,  setViewingPdf]    = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -191,7 +191,7 @@ const Archivo = ({ type }) => {
                       No hay archivos en este repositorio
                     </div>
                     <div style={{ fontSize:'13px', color:'#64748b' }}>
-                      Haz clic en <strong style={{ color: accent }}>⬆️ Subir PDF</strong> para agregar el primer archivo
+                      Haz clic en <span onClick={() => setIsModalOpen(true)} style={{ color: accent, cursor: 'pointer', textDecoration: 'underline', fontWeight: 800 }}>⬆️ Subir PDF</span> para agregar el primer archivo
                     </div>
                   </td>
                 </tr>
@@ -343,7 +343,7 @@ const Archivo = ({ type }) => {
                 Cancelar
               </button>
               <button
-                onClick={() => { deleteItem(listKey, confirmDelete); setConfirmDelete(null); }}
+                onClick={() => { removeItem(listKey, archives[confirmDelete]?.id); setConfirmDelete(null); }}
                 style={{
                   background:'linear-gradient(135deg,#dc2626,#ef4444)',
                   color:'white', border:'none', borderRadius:'10px',

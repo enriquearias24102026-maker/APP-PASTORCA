@@ -14,7 +14,7 @@ export const useAppData = () => {
   return ctx;
 };
 
-const COLLECTIONS = ['proveedores', 'productos', 'clientes', 'compras', 'ventas', 'vendedores', 'aliados'];
+const COLLECTIONS = ['proveedores', 'productos', 'clientes', 'compras', 'ventas', 'vendedores', 'aliados', 'archivosUpaca', 'archivosClientes'];
 
 const userCol  = (uid, colName) => collection(db, 'users', uid, colName);
 const userDoc  = (uid, colName, docId) => doc(db, 'users', uid, colName, docId);
@@ -82,7 +82,7 @@ export const AppDataProvider = ({ uid, children }) => {
   // ══════════════════════════════════════════════════════════════════════════
   const [data, setData] = useState(() => {
     const initial = {};
-    for (const col of [...COLLECTIONS, 'archivosUpaca', 'archivosClientes']) {
+    for (const col of COLLECTIONS) {
       const raw = lsGet(uid, col);
       const deletedSet = getDeletedIdsForCol(col);
       initial[col] = deletedSet.size > 0 
