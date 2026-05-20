@@ -123,8 +123,8 @@ const Compras = () => {
         display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14,
       }}>
         <div>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:2, marginBottom:6 }}>PASTORCA · Compras UPACA</div>
-          <h2 style={{ margin:0, fontSize:22, fontWeight:900, color:'white' }}>🧾 Facturas de Compra — UPACA</h2>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:2, marginBottom:6 }}>PASTORCA · Compras a Proveedores</div>
+          <h2 style={{ margin:0, fontSize:22, fontWeight:900, color:'white' }}>🧾 Facturas de Compra</h2>
           <div style={{ display:'flex', gap:12, marginTop:10, flexWrap:'wrap' }}>
             <span style={{ background:'rgba(255,255,255,0.15)', borderRadius:20, padding:'4px 14px', fontSize:12, color:'white', fontWeight:700 }}>
               📋 {data.compras.length} factura{data.compras.length!==1?'s':''}
@@ -174,7 +174,7 @@ const Compras = () => {
         {/* table header bar */}
         <div style={{ background:'linear-gradient(135deg,#0891b2,#06b6d4)', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span style={{ fontSize:13, fontWeight:800, color:'white', display:'flex', alignItems:'center', gap:8 }}>
-            🧾 Registro de Facturas UPACA
+            🧾 Registro de Facturas de Compra
             <span style={{ background:'rgba(255,255,255,0.2)', borderRadius:12, padding:'2px 10px', fontSize:11 }}>{data.compras.length} registros</span>
           </span>
           <span style={{ fontSize:11, color:'rgba(255,255,255,0.6)' }}>Pago en USD · Equivalente BCV del día</span>
@@ -264,7 +264,7 @@ const Compras = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingCompra ? '✏️ Modificar Factura de Compra' : '🧾 Registrar Factura de Compra — UPACA'}
+        title={editingCompra ? '✏️ Modificar Factura de Compra' : '🧾 Registrar Factura de Compra'}
         size="xl"
       >
         <ComprasForm

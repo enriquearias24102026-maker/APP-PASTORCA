@@ -21,7 +21,7 @@ const Archivo = ({ type }) => {
     : 'linear-gradient(135deg,#059669,#10b981)';
   const glow      = isUpaca ? 'rgba(6,182,212,0.35)' : 'rgba(16,185,129,0.35)';
   const icon      = isUpaca ? '🧾' : '👥';
-  const typeLabel = isUpaca ? 'Facturas UPACA' : 'Documentos Clientes';
+  const typeLabel = isUpaca ? 'Facturas Proveedores' : 'Documentos Clientes';
 
   const processFile = (file) => {
     if (!file) return;
@@ -261,7 +261,7 @@ const Archivo = ({ type }) => {
       </div>
 
       {/* ── MODAL: SUBIR PDF ── */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Subir Factura PDF — ${type}`}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Subir Factura PDF — ${isUpaca ? 'Proveedor' : 'Cliente'}`}>
         <div style={{ padding:'8px' }}>
           <div
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}

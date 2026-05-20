@@ -111,6 +111,7 @@ const Reportes = () => {
   const { data, tasaBCV } = useAppData();
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedProveedor, setSelectedProveedor] = useState('');
   const [downloading, setDownloading] = useState('');
   const [activeTab, setActiveTab] = useState('resumen');
 
@@ -128,7 +129,13 @@ const Reportes = () => {
   }, [fechaDesde, fechaHasta]);
 
   const ventasFiltradas = useMemo(() => filterByDate(data?.ventas || []), [data.ventas, filterByDate]);
-  const comprasFiltradas = useMemo(() => filterByDate(data?.compras || []), [data.compras, filterByDate]);
+  const comprasFiltradas = useMemo(() => {
+    const list = filterByDate(data?.compras || []);
+    if (selectedProveedor) {
+      return list.filter(c => String(c.proveedorNombre || '').trim().toLowerCase() === String(selectedProveedor).trim().toLowerCase());
+    }
+    return list;
+  }, [data.compras, filterByDate, selectedProveedor]);
 
   const totalVentasUSD = ventasFiltradas.reduce((s, v) => s + (v.total || 0), 0);
   const totalComprasUSD = comprasFiltradas.reduce((s, c) => s + (c.total || 0), 0);
@@ -242,20 +249,21 @@ const Reportes = () => {
 
   const downloadCompras = () => {
     setDownloading('compras');
-    const rows = filterByDate(data?.compras || []).map(c => ({
+    const rows = comprasFiltradas.map(c => ({
       'Fecha': U.fmtDate(c.fecha), 'Factura N°': c.numeroFactura, 'Proveedor': c.proveedorNombre,
       'N° Productos': (c.items || []).length,
       'Subtotal ($)': +(c.subtotal || 0).toFixed(2),
       'IVA ($)': +(c.iva || 0).toFixed(2),
-      'Desc. UPACA ($)': +(c.montoDescuento || 0).toFixed(2),
+      'Desc. Proveedor ($)': +(c.montoDescuento || 0).toFixed(2),
       'Total ($)': +(c.total || 0).toFixed(2),
       'Total Bs.': tasaBCV > 0 ? +((c.total || 0) * (c.tasaBCVUsada || tasaBCV)).toFixed(2) : '',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Compras UPACA');
-    addHeader(wb, ws, `PASTORCA — Compras a UPACA — ${hoy}`);
-    XLSX.writeFile(wb, `PASTORCA_Compras_${U.today()}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Compras');
+    const provName = selectedProveedor || 'Todos';
+    addHeader(wb, ws, `PASTORCA — Compras (${provName}) — ${hoy}`);
+    XLSX.writeFile(wb, `PASTORCA_Compras_${provName.replace(/\s+/g, '_')}_${U.today()}.xlsx`);
     setDownloading('');
   };
 
@@ -274,18 +282,19 @@ const Reportes = () => {
       'Total ($)': +(v.total || 0).toFixed(2), 'Estado': v.estadoPago,
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ventaRows), 'Pre-Facturas Ventas');
-    const compraRows = filterByDate(data?.compras || []).map(c => ({
+    const compraRows = comprasFiltradas.map(c => ({
       'Fecha': U.fmtDate(c.fecha), 'Factura': c.numeroFactura, 'Proveedor': c.proveedorNombre,
       'Total ($)': +(c.total || 0).toFixed(2),
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compraRows), 'Compras UPACA');
-    XLSX.writeFile(wb, `PASTORCA_ReporteCompleto_${U.today()}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compraRows), 'Compras');
+    const provName = selectedProveedor ? `_${selectedProveedor.replace(/\s+/g, '_')}` : '';
+    XLSX.writeFile(wb, `PASTORCA_ReporteCompleto${provName}_${U.today()}.xlsx`);
     setDownloading('');
   };
 
   const downloadPagosProveedores = () => {
     setDownloading('pagos');
-    const rows = filterByDate(data?.compras || []).map(c => {
+    const rows = comprasFiltradas.map(c => {
       const pagos = c.pagos || [];
       const totalPagado = pagos.reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
       const pendiente = U.r2(c.total - totalPagado);
@@ -311,8 +320,9 @@ const Reportes = () => {
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Control de Pagos');
-    addHeader(wb, ws, `PASTORCA — Control de Pagos a Proveedores — ${hoy}`);
-    XLSX.writeFile(wb, `PASTORCA_ControlPagos_${U.today()}.xlsx`);
+    const provName = selectedProveedor || 'Todos';
+    addHeader(wb, ws, `PASTORCA — Control de Pagos (${provName}) — ${hoy}`);
+    XLSX.writeFile(wb, `PASTORCA_ControlPagos_${provName.replace(/\s+/g, '_')}_${U.today()}.xlsx`);
     setDownloading('');
   };
 
@@ -384,7 +394,7 @@ const Reportes = () => {
     { id: 'resumen', label: 'Resumen General', icon: '📊' },
     { id: 'clientes', label: 'Clientes', icon: '👥' },
     { id: 'ventas', label: 'Ventas', icon: '📋' },
-    { id: 'compras', label: 'Compras UPACA', icon: '🧾' },
+    { id: 'compras', label: 'Compras', icon: '🧾' },
     { id: 'pagos', label: 'Control de Pagos', icon: '💳' },
   ];
 
@@ -423,16 +433,40 @@ const Reportes = () => {
           <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Hasta</span>
           <input style={inputStyle} type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
         </div>
-        {(fechaDesde || fechaHasta) && (
-          <button onClick={() => { setFechaDesde(''); setFechaHasta(''); }} style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Proveedor</span>
+          <select
+            style={{
+              ...inputStyle,
+              background: 'rgba(255,255,255,0.08)',
+              color: '#ffffff',
+              border: '1.5px solid rgba(255,255,255,0.15)',
+              cursor: 'pointer',
+              outline: 'none',
+              borderRadius: '10px',
+              padding: '8px 14px',
+            }}
+            value={selectedProveedor}
+            onChange={e => setSelectedProveedor(e.target.value)}
+          >
+            <option value="" style={{ background: '#0f172a', color: '#fff' }}>Todos los Proveedores</option>
+            {(data?.proveedores || []).map(p => (
+              <option key={p.id} value={p.nombre} style={{ background: '#0f172a', color: '#fff' }}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        {(fechaDesde || fechaHasta || selectedProveedor) && (
+          <button onClick={() => { setFechaDesde(''); setFechaHasta(''); setSelectedProveedor(''); }} style={{
             background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
             color: '#f87171', borderRadius: '8px', cursor: 'pointer',
             padding: '8px 14px', fontSize: '12px', fontWeight: 700,
           }}>✕ Limpiar</button>
         )}
         <div style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
-          {fechaDesde || fechaHasta
-            ? `📊 ${ventasFiltradas.length} ventas · ${comprasFiltradas.length} compras en rango`
+          {fechaDesde || fechaHasta || selectedProveedor
+            ? `📊 ${ventasFiltradas.length} ventas · ${comprasFiltradas.length} compras filtradas`
             : 'Mostrando todos los registros'}
         </div>
       </div>
@@ -693,15 +727,13 @@ const Reportes = () => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════
-         TAB: COMPRAS UPACA
-         ═══════════════════════════════════ */}
+      {/* ── TAB: COMPRAS ── */}
       {activeTab === 'compras' && (
         <div style={{ animation: 'fadeIn 0.3s both' }}>
           <div style={{ ...cardBox, padding: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>🧾 Compras a UPACA</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>🧾 Informe de Compras</h3>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{comprasFiltradas.length} facturas en período</p>
               </div>
               <button onClick={downloadCompras} disabled={downloading === 'compras'} style={dlBtnStyle('linear-gradient(135deg,#0891b2,#06b6d4)', 'compras')}>
