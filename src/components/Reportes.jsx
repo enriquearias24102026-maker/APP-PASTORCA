@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useAppData } from '../context/AppDataContext';
 import { U } from '../utils';
@@ -67,7 +67,7 @@ const BarChart = ({ bars, maxVal }) => {
   );
 };
 
-const ProgressBar = ({ value, max, color = '#10b981', height = 8 }) => {
+const ProgressBar = ({ value, max, height = 8 }) => {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div style={{ background: 'rgba(0,0,0,0.06)', borderRadius: '6px', height, overflow: 'hidden', minWidth: '80px' }}>
@@ -84,6 +84,29 @@ const ProgressBar = ({ value, max, color = '#10b981', height = 8 }) => {
    MAIN REPORTES COMPONENT
    ═══════════════════════════════════════════════════════════ */
 
+const safeDateStr = (d) => {
+  if (!d) return '';
+  if (typeof d === 'object') {
+    if (typeof d.toMillis === 'function') {
+      return new Date(d.toMillis()).toISOString().split('T')[0];
+    }
+    if (d.seconds !== undefined) {
+      return new Date(d.seconds * 1000).toISOString().split('T')[0];
+    }
+    if (d instanceof Date) {
+      return d.toISOString().split('T')[0];
+    }
+    try {
+      const str = String(d);
+      if (str.includes('[object')) return '';
+      return str.split('T')[0];
+    } catch {
+      return '';
+    }
+  }
+  return String(d).split('T')[0];
+};
+
 const Reportes = () => {
   const { data, tasaBCV } = useAppData();
   const [fechaDesde, setFechaDesde] = useState('');
@@ -94,16 +117,18 @@ const Reportes = () => {
   const hoy = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   /* ── Filtrado por fecha ── */
-  const filterByDate = (items, campo = 'fecha') =>
-    items.filter(item => {
-      const f = item[campo];
+  const filterByDate = useCallback((items, campo = 'fecha') => {
+    if (!Array.isArray(items)) return [];
+    return items.filter(item => {
+      const f = safeDateStr(item[campo]);
       if (fechaDesde && f < fechaDesde) return false;
       if (fechaHasta && f > fechaHasta) return false;
       return true;
     });
+  }, [fechaDesde, fechaHasta]);
 
-  const ventasFiltradas = useMemo(() => filterByDate(data.ventas), [data.ventas, fechaDesde, fechaHasta]);
-  const comprasFiltradas = useMemo(() => filterByDate(data.compras), [data.compras, fechaDesde, fechaHasta]);
+  const ventasFiltradas = useMemo(() => filterByDate(data?.ventas || []), [data.ventas, filterByDate]);
+  const comprasFiltradas = useMemo(() => filterByDate(data?.compras || []), [data.compras, filterByDate]);
 
   const totalVentasUSD = ventasFiltradas.reduce((s, v) => s + (v.total || 0), 0);
   const totalComprasUSD = comprasFiltradas.reduce((s, c) => s + (c.total || 0), 0);
@@ -113,13 +138,13 @@ const Reportes = () => {
   const monthlyData = useMemo(() => {
     const months = {};
     ventasFiltradas.forEach(v => {
-      const m = (v.fecha || '').substring(0, 7); // YYYY-MM
+      const m = safeDateStr(v.fecha).substring(0, 7); // YYYY-MM
       if (!m) return;
       months[m] = months[m] || { ventas: 0, compras: 0 };
       months[m].ventas += v.total || 0;
     });
     comprasFiltradas.forEach(c => {
-      const m = (c.fecha || '').substring(0, 7);
+      const m = safeDateStr(c.fecha).substring(0, 7);
       if (!m) return;
       months[m] = months[m] || { ventas: 0, compras: 0 };
       months[m].compras += c.total || 0;
@@ -130,7 +155,10 @@ const Reportes = () => {
       .map(([key, val]) => {
         const [y, m] = key.split('-');
         const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        return { label: `${monthNames[parseInt(m) - 1]} ${y.slice(2)}`, ...val };
+        const monthIdx = parseInt(m, 10) - 1;
+        const monthLabel = monthIdx >= 0 && monthIdx < 12 ? monthNames[monthIdx] : 'Mes';
+        const yearLabel = y ? y.slice(2) : '';
+        return { label: `${monthLabel} ${yearLabel}`, ...val };
       });
   }, [ventasFiltradas, comprasFiltradas]);
 
@@ -143,7 +171,7 @@ const Reportes = () => {
 
   /* ── Datos de clientes para tabla visual ── */
   const clientesData = useMemo(() => {
-    return data.clientes.map(c => {
+    return (data?.clientes || []).map(c => {
       const vc = ventasFiltradas.filter(v => String(v.clienteId) === String(c.id));
       const totalFacturado = vc.reduce((s, v) => s + (v.total || 0), 0);
       const totalPendiente = vc.filter(v => v.estadoPago !== 'pagado').reduce((s, v) => s + (v.total || 0), 0);
@@ -171,8 +199,8 @@ const Reportes = () => {
 
   const downloadClientes = () => {
     setDownloading('clientes');
-    const rows = data.clientes.map(c => {
-      const vc = filterByDate(data.ventas.filter(v => String(v.clienteId) === String(c.id)));
+    const rows = (data?.clientes || []).map(c => {
+      const vc = filterByDate((data?.ventas || []).filter(v => String(v.clienteId) === String(c.id)));
       const totalFacturado = vc.reduce((s, v) => s + (v.total || 0), 0);
       const totalPendiente = vc.filter(v => v.estadoPago !== 'pagado').reduce((s, v) => s + (v.total || 0), 0);
       return {
@@ -195,7 +223,7 @@ const Reportes = () => {
 
   const downloadVentas = () => {
     setDownloading('ventas');
-    const ventas = filterByDate(data.ventas);
+    const ventas = filterByDate(data?.ventas || []);
     const rows = ventas.map(v => ({
       'Fecha': U.fmtDate(v.fecha), 'F. Entrega': v.fechaEntrega ? U.fmtDate(v.fechaEntrega) : '',
       'Cliente': v.clienteNombre, 'RIF': v.clienteRif || '', 'Teléfono': v.clienteTelefono || '',
@@ -214,7 +242,7 @@ const Reportes = () => {
 
   const downloadCompras = () => {
     setDownloading('compras');
-    const rows = filterByDate(data.compras).map(c => ({
+    const rows = filterByDate(data?.compras || []).map(c => ({
       'Fecha': U.fmtDate(c.fecha), 'Factura N°': c.numeroFactura, 'Proveedor': c.proveedorNombre,
       'N° Productos': (c.items || []).length,
       'Subtotal ($)': +(c.subtotal || 0).toFixed(2),
@@ -234,19 +262,19 @@ const Reportes = () => {
   const downloadCompleto = () => {
     setDownloading('completo');
     const wb = XLSX.utils.book_new();
-    const clienteRows = data.clientes.map(c => {
-      const vc = filterByDate(data.ventas.filter(v => String(v.clienteId) === String(c.id)));
+    const clienteRows = (data?.clientes || []).map(c => {
+      const vc = filterByDate((data?.ventas || []).filter(v => String(v.clienteId) === String(c.id)));
       return { 'Nombre': c.nombre, 'RIF': c.rif, 'Teléfono': c.telefono || '', 'Facturas': vc.length,
         'Total ($)': +vc.reduce((s, v) => s + (v.total || 0), 0).toFixed(2),
         'Pendiente ($)': +vc.filter(v => v.estadoPago !== 'pagado').reduce((s, v) => s + (v.total || 0), 0).toFixed(2) };
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clienteRows), 'Clientes');
-    const ventaRows = filterByDate(data.ventas).map(v => ({
+    const ventaRows = filterByDate(data?.ventas || []).map(v => ({
       'Fecha': U.fmtDate(v.fecha), 'Cliente': v.clienteNombre,
       'Total ($)': +(v.total || 0).toFixed(2), 'Estado': v.estadoPago,
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ventaRows), 'Pre-Facturas Ventas');
-    const compraRows = filterByDate(data.compras).map(c => ({
+    const compraRows = filterByDate(data?.compras || []).map(c => ({
       'Fecha': U.fmtDate(c.fecha), 'Factura': c.numeroFactura, 'Proveedor': c.proveedorNombre,
       'Total ($)': +(c.total || 0).toFixed(2),
     }));
@@ -257,7 +285,7 @@ const Reportes = () => {
 
   const downloadPagosProveedores = () => {
     setDownloading('pagos');
-    const rows = filterByDate(data.compras).map(c => {
+    const rows = filterByDate(data?.compras || []).map(c => {
       const pagos = c.pagos || [];
       const totalPagado = pagos.reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
       const pendiente = U.r2(c.total - totalPagado);
@@ -318,7 +346,7 @@ const Reportes = () => {
   const inputStyle = {
     padding: '9px 14px', borderRadius: '10px', fontSize: '13px',
     border: '1.5px solid rgba(255,255,255,0.15)',
-    background: 'rgba(255,255,255,0.08)', color: 'var(--text-primary)',
+    background: 'rgba(255,255,255,0.08)', color: '#ffffff',
     fontFamily: 'Outfit, sans-serif', outline: 'none',
   };
 
