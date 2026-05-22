@@ -17,16 +17,42 @@ export const U = {
   },
   fmtDate(d) {
     if (!d) return '—';
-    const dt = new Date(d + 'T12:00:00');
-    return dt.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    try {
+      let dt;
+      if (typeof d.toDate === 'function') {
+        dt = d.toDate();
+      } else if (d instanceof Date) {
+        dt = d;
+      } else {
+        const dStr = String(d);
+        dt = new Date(dStr.includes('T') ? dStr : dStr + 'T12:00:00');
+      }
+      if (isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return String(d);
+    }
   },
   today() {
     return new Date().toISOString().split('T')[0];
   },
   addDays(date, days) {
-    const d = new Date(date + 'T12:00:00');
-    d.setDate(d.getDate() + days);
-    return d.toISOString().split('T')[0];
+    try {
+      let d;
+      if (date && typeof date.toDate === 'function') {
+        d = date.toDate();
+      } else if (date instanceof Date) {
+        d = new Date(date);
+      } else {
+        const dateStr = String(date);
+        d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+      }
+      if (isNaN(d.getTime())) return String(date);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    } catch (e) {
+      return String(date);
+    }
   },
   isToday(dateStr) {
     if (!dateStr) return false;

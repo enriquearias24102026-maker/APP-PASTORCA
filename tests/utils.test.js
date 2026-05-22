@@ -33,7 +33,22 @@ const tests = {
     console.assert(U.fmtDate('2026-05-19') === '19/05/2026', `fmtDate got "${U.fmtDate('2026-05-19')}"`);
     console.assert(U.fmtDate('') === '—', 'Empty date should format as dash');
     
+    // Firestore Timestamp simulation
+    const mockTimestamp = { toDate: () => new Date('2026-05-19T12:00:00') };
+    console.assert(U.fmtDate(mockTimestamp) === '19/05/2026', `fmtDate(Timestamp) got "${U.fmtDate(mockTimestamp)}"`);
+    
+    // Date object
+    const dateObj = new Date('2026-05-19T12:00:00');
+    console.assert(U.fmtDate(dateObj) === '19/05/2026', `fmtDate(Date) got "${U.fmtDate(dateObj)}"`);
+    
+    // Invalid Date Fallback
+    console.assert(U.fmtDate('Not-A-Date') === 'Not-A-Date', `fmtDate(Invalid) got "${U.fmtDate('Not-A-Date')}"`);
+    
     console.assert(U.addDays('2026-05-19', 5) === '2026-05-24', `addDays got "${U.addDays('2026-05-19', 5)}"`);
+    console.assert(U.addDays(mockTimestamp, 5) === '2026-05-24', `addDays(Timestamp) got "${U.addDays(mockTimestamp, 5)}"`);
+    console.assert(U.addDays(dateObj, 5) === '2026-05-24', `addDays(Date) got "${U.addDays(dateObj, 5)}"`);
+    console.assert(U.addDays('Not-A-Date', 5) === 'Not-A-Date', `addDays(Invalid) got "${U.addDays('Not-A-Date', 5)}"`);
+    
     console.assert(U.isToday(U.today()) === true, 'isToday should return true for today');
   }
 };

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { U } from '../utils';
 import Modal from './Modal';
@@ -42,11 +43,11 @@ const Contabilidad = () => {
   const totalCxC = cxcItems.reduce((s,v) => s+(v.total||0), 0);
 
   const cxpItems = data.compras.filter(c => {
-    const pagado = (c.pagos || []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
+    const pagado = (Array.isArray(c.pagos) ? c.pagos : []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
     return (c.total - pagado) > 0.01;
   });
   const totalCxP = cxpItems.reduce((s,c) => {
-    const pagado = (c.pagos || []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
+    const pagado = (Array.isArray(c.pagos) ? c.pagos : []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
     return s + (c.total - pagado);
   }, 0);
 
@@ -55,7 +56,7 @@ const Contabilidad = () => {
   const utilidad      = totalIngresos - totalCostos;
   const margen        = totalIngresos > 0 ? ((utilidad/totalIngresos)*100) : 0;
   const pagadasUpaca  = data.compras.filter(c => {
-    const pagado = (c.pagos || []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
+    const pagado = (Array.isArray(c.pagos) ? c.pagos : []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
     return (c.total - pagado) <= 0.01;
   });
 
@@ -269,7 +270,7 @@ const Contabilidad = () => {
               </td></tr>
             )}
             {cxpItems.map((c,i) => {
-              const pagado = (c.pagos || []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
+              const pagado = (Array.isArray(c.pagos) ? c.pagos : []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
               const pendiente = c.total - pagado;
               return (
                 <tr key={c.id} style={{ background: i%2===0?'white':'#fff5f5' }}>
