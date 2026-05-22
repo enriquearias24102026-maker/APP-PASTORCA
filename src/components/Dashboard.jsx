@@ -103,10 +103,60 @@ const Dashboard = () => {
   };
 
   const kpis = [
-    { label: 'Compras UPACA', usd: totalComprasUSD, icon: '📥', bg: 'linear-gradient(135deg,#1e40af,#3b82f6)', note: 'Pago en USD', view: 'compras' },
-    { label: 'Ventas Totales', usd: totalVentasUSD,  icon: '📤', bg: 'linear-gradient(135deg,#059669,#10b981)', note: 'Cliente paga Bs.', view: 'ventas' },
-    { label: 'Por Cobrar', usd: pendCobroUSD, icon: '⏳', bg: 'linear-gradient(135deg,#d97706,#f59e0b)', note: `${factPendientes} factura(s)`, view: 'ventas' },
-    { label: 'Utilidad', usd: utilidadUSD, icon: '💰', bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', note: utilidadUSD >= 0 ? 'Positiva ▲' : 'Negativa ▼', view: 'contabilidad' },
+    {
+      label: 'Compras UPACA',
+      usd: totalComprasUSD,
+      icon: '📥',
+      bg: 'linear-gradient(135deg, #ecfeff, #cffafe)',
+      accent: '#06b6d4',
+      color: '#164e63',
+      subColor: '#0891b2',
+      glow: 'rgba(6,182,212,0.12)',
+      border: 'rgba(6,182,212,0.3)',
+      note: 'Pago en USD',
+      view: 'compras'
+    },
+    {
+      label: 'Ventas Totales',
+      usd: totalVentasUSD,
+      icon: '📤',
+      bg: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+      accent: '#10b981',
+      color: '#14532d',
+      subColor: '#16a34a',
+      glow: 'rgba(16,185,129,0.12)',
+      border: 'rgba(16,185,129,0.3)',
+      note: 'Cliente paga Bs.',
+      view: 'ventas'
+    },
+    {
+      label: 'Por Cobrar',
+      usd: pendCobroUSD,
+      icon: '⏳',
+      bg: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+      accent: '#f59e0b',
+      color: '#78350f',
+      subColor: '#d97706',
+      glow: 'rgba(245,158,11,0.12)',
+      border: 'rgba(245,158,11,0.3)',
+      note: `${factPendientes} factura(s)`,
+      view: 'ventas'
+    },
+    {
+      label: 'Utilidad',
+      usd: utilidadUSD,
+      icon: '💰',
+      bg: utilidadUSD >= 0
+        ? 'linear-gradient(135deg, #f5f3ff, #ede9fe)'
+        : 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+      accent: utilidadUSD >= 0 ? '#7c3aed' : '#ef4444',
+      color: utilidadUSD >= 0 ? '#4c1d95' : '#7f1d1d',
+      subColor: utilidadUSD >= 0 ? '#7c3aed' : '#dc2626',
+      glow: utilidadUSD >= 0 ? 'rgba(139,92,246,0.12)' : 'rgba(239,68,68,0.12)',
+      border: utilidadUSD >= 0 ? 'rgba(139,92,246,0.3)' : 'rgba(239,68,68,0.3)',
+      note: utilidadUSD >= 0 ? 'Positiva ▲' : 'Negativa ▼',
+      view: 'contabilidad'
+    },
   ];
 
   return (
@@ -221,19 +271,21 @@ const Dashboard = () => {
         {kpis.map(k => (
           <div key={k.label} onClick={() => setCurrentView(k.view)} style={{
             background: k.bg, borderRadius: '18px', padding: '22px 20px',
-            color: 'white', boxShadow: '0 6px 20px rgba(15,23,42,0.15)',
+            boxShadow: `0 8px 24px ${k.glow}`,
+            border: `1px solid ${k.border}`,
             transition: 'transform .2s, box-shadow .2s', cursor: 'pointer',
             position: 'relative', overflow: 'hidden',
           }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(15,23,42,0.22)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(15,23,42,0.15)'; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 12px 28px ${k.glow.replace('0.12', '0.22')}`; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 8px 24px ${k.glow}`; }}
           >
-            <div style={{ position: 'absolute', top: 14, right: 14, opacity: 0.5, fontSize: 14, fontWeight: 700 }}>→</div>
+            <div style={{ position: 'absolute', bottom: -10, right: -10, fontSize: 80, opacity: 0.18, lineHeight: 1, pointerEvents: 'none' }}>{k.icon}</div>
+            <div style={{ position: 'absolute', top: 14, right: 14, color: k.color, opacity: 0.5, fontSize: 14, fontWeight: 700 }}>→</div>
             <div style={{ fontSize: '28px', marginBottom: '10px' }}>{k.icon}</div>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', opacity: .85, marginBottom: '6px' }}>{k.label}</div>
-            <div style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-1px' }}>$ {U.fmt(k.usd)}</div>
-            {tasaBCV > 0 && <div style={{ fontSize: '13px', opacity: .9, marginTop: '4px', fontWeight: 600 }}>{U.fmtBs(k.usd, tasaBCV)}</div>}
-            <div style={{ fontSize: '11px', opacity: .75, marginTop: '6px' }}>{k.note}</div>
+            <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', color: k.color, marginBottom: '6px' }}>{k.label}</div>
+            <div style={{ fontSize: '26px', fontWeight: 900, color: k.color, letterSpacing: '-0.5px', lineHeight: 1 }}>$ {U.fmt(k.usd)}</div>
+            {tasaBCV > 0 && <div style={{ fontSize: '13px', color: k.color, marginTop: '8px', fontWeight: 700 }}>{U.fmtBs(k.usd, tasaBCV)}</div>}
+            <div style={{ fontSize: '11px', color: k.subColor, marginTop: '8px', fontWeight: 600 }}>{k.note}</div>
           </div>
         ))}
       </div>
@@ -291,28 +343,50 @@ const Dashboard = () => {
           {/* BCV Card */}
           <div style={{
             background: tasaEsHoy && tasaBCV > 0
-              ? 'linear-gradient(135deg,#059669,#10b981)'
-              : 'linear-gradient(135deg,#d97706,#f59e0b)',
-            borderRadius: '18px', padding: '22px 20px', color: 'white',
-            boxShadow: '0 6px 20px rgba(15,23,42,0.15)',
+              ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)'
+              : 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+            borderRadius: '18px', padding: '22px 20px',
+            boxShadow: tasaEsHoy && tasaBCV > 0
+              ? '0 8px 24px rgba(16,185,129,0.12)'
+              : '0 8px 24px rgba(245,158,11,0.12)',
+            border: tasaEsHoy && tasaBCV > 0
+              ? '1px solid rgba(16,185,129,0.3)'
+              : '1px solid rgba(245,158,11,0.3)',
+            position: 'relative', overflow: 'hidden'
           }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', opacity: .8, marginBottom: '8px' }}>
+            <div style={{ position: 'absolute', bottom: -10, right: -10, fontSize: 80, opacity: 0.18, lineHeight: 1, pointerEvents: 'none' }}>💱</div>
+            <div style={{
+              fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px',
+              color: tasaEsHoy && tasaBCV > 0 ? '#14532d' : '#78350f', marginBottom: '8px'
+            }}>
               💱 Tasa BCV Activa
             </div>
             {tasaBCV > 0 ? (
               <>
-                <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px' }}>
+                <div style={{
+                  fontSize: '30px', fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1,
+                  color: tasaEsHoy && tasaBCV > 0 ? '#14532d' : '#78350f'
+                }}>
                   Bs. {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(tasaBCV)}
                 </div>
-                <div style={{ fontSize: '12px', opacity: .8, marginTop: '6px' }}>
+                <div style={{
+                  fontSize: '12px', fontWeight: 600, marginTop: '8px',
+                  color: tasaEsHoy && tasaBCV > 0 ? '#16a34a' : '#d97706'
+                }}>
                   1 USD = Bs. {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(tasaBCV)}
                 </div>
-                <div style={{ fontSize: '11px', opacity: .7, marginTop: '4px' }}>
+                <div style={{
+                  fontSize: '11px', fontWeight: 700, marginTop: '8px',
+                  color: tasaEsHoy && tasaBCV > 0 ? '#14532d' : '#9a3412'
+                }}>
                   {tasaEsHoy ? '✅ Tasa del día' : '⚠️ Actualizar en el encabezado'}
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: '15px', fontWeight: 700, opacity: .9 }}>
+              <div style={{
+                fontSize: '15px', fontWeight: 800,
+                color: '#78350f', lineHeight: '1.4'
+              }}>
                 ⚠️ Haz clic en el encabezado para ingresar la tasa BCV del día
               </div>
             )}

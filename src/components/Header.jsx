@@ -28,7 +28,7 @@ const Header = () => {
     controlPagos: 'Control de Pagos a Proveedores',
     clientes: 'Clientes',
     ventas: 'Pre-Facturas de Venta',
-    archivoUpaca: 'Archivo PDF — Facturas UPACA',
+    archivoUpaca: 'Archivo Proveedor',
     archivoClientes: 'Archivo PDF — Facturas Clientes',
     reportes: 'Reportes Excel',
     corteFacturas: 'Corte de Facturas',

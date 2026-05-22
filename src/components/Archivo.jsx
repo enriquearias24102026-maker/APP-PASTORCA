@@ -3,12 +3,20 @@ import { useAppData } from '../context/AppDataContext';
 import { U } from '../utils';
 import Modal from './Modal';
 
+// Configuración de Supabase Storage
+const SUPABASE_URL = 'https://styeihrihercdpwiecdp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0eWVpaHJpaGVyY2Rwd2llY2RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDExMTksImV4cCI6MjA5NDg3NzExOX0.Pi2MO1ZnoEhY4wS_qD4XOPvoCQ3Y73nbdk7HUeBiOJk';
+const BUCKET_NAME = 'archivos-pdf';
+
 const Archivo = ({ type }) => {
   const { data, addItem, removeItem, setCurrentView } = useAppData();
   const [isModalOpen, setIsModalOpen]   = useState(false);
   const [viewingPdf,  setViewingPdf]    = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [dragOver, setDragOver]         = useState(false);
+  const [uploading, setUploading]       = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError]   = useState(null);
 
   const listKey  = type === 'UPACA' ? 'archivosUpaca' : 'archivosClientes';
   const archives = data[listKey] || [];
@@ -23,22 +31,107 @@ const Archivo = ({ type }) => {
   const icon      = isUpaca ? '🧾' : '👥';
   const typeLabel = isUpaca ? 'Facturas Proveedores' : 'Documentos Clientes';
 
-  const processFile = (file) => {
+  // Límite seguro para Firestore directo (base64 inflates ~33%, so 700KB file → ~933KB base64)
+  const FIRESTORE_SAFE_LIMIT = 700 * 1024; // 700 KB
+
+  /* ── Subir PDF: intenta Supabase Storage, si falla usa Firestore directo ── */
+  const processFile = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      addItem(listKey, {
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+
+    // ── INTENTO 1: Supabase Storage (sin límite práctico) ──
+    try {
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `${listKey}/${timestamp}_${safeName}`;
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${filePath}`;
+
+      setUploadProgress(20);
+
+      // Subimos usando fetch directamente a la API REST de Supabase Storage
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': file.type,
+        },
+        body: file
+      });
+
+      setUploadProgress(70);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error del servidor Supabase (${response.status})`);
+      }
+
+      // Si la subida fue exitosa, generamos la URL pública
+      const downloadURL = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${filePath}`;
+
+      await addItem(listKey, {
         name: file.name,
         date: U.today(),
         size: file.size >= 1048576
-          ? (file.size/1048576).toFixed(2)+' MB'
-          : (file.size/1024).toFixed(2)+' KB',
-        content: ev.target.result,
+          ? (file.size / 1048576).toFixed(2) + ' MB'
+          : (file.size / 1024).toFixed(2) + ' KB',
+        content: downloadURL,
+        storagePath: filePath,
         type: file.type,
       });
+
+      setUploadProgress(100);
+      setUploading(false);
       setIsModalOpen(false);
-    };
-    reader.readAsDataURL(file);
+      return; // Éxito con Supabase Storage
+    } catch (storageErr) {
+      console.warn('⚠️ Supabase Storage falló o requiere políticas de acceso:', storageErr.message);
+      // Guardamos el error para mostrarlo en caso de que Firestore también falle o el archivo sea muy grande
+      const isPolicyError = storageErr.message.includes('403') || storageErr.message.includes('401') || storageErr.message.includes('policies');
+      
+      if (file.size > FIRESTORE_SAFE_LIMIT) {
+        setUploadError(
+          isPolicyError 
+            ? 'Error de acceso (403): Asegúrate de haber agregado la política de subida (INSERT) en tu bucket de Supabase.'
+            : `Error al subir a Supabase: ${storageErr.message}. Y el archivo es demasiado grande para Firestore (${(file.size / 1024).toFixed(0)} KB).`
+        );
+        setUploading(false);
+        return;
+      }
+      console.log('Fallback: intentando guardar en Firestore directamente...');
+    }
+
+    // ── INTENTO 2: Firestore directo (base64, con límite de tamaño) ──
+    try {
+      setUploadProgress(40);
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve, reject) => {
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.onerror = () => reject(new Error('Error leyendo archivo'));
+        reader.readAsDataURL(file);
+      });
+
+      setUploadProgress(60);
+      await addItem(listKey, {
+        name: file.name,
+        date: U.today(),
+        size: file.size >= 1048576
+          ? (file.size / 1048576).toFixed(2) + ' MB'
+          : (file.size / 1024).toFixed(2) + ' KB',
+        content: base64,
+        type: file.type,
+      });
+
+      setUploadProgress(100);
+      setUploading(false);
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('Error guardando PDF:', err);
+      setUploadError('Error al guardar el archivo: ' + err.message);
+      setUploading(false);
+    }
   };
 
   const handleFileUpload = (e) => processFile(e.target.files[0]);
@@ -261,26 +354,27 @@ const Archivo = ({ type }) => {
       </div>
 
       {/* ── MODAL: SUBIR PDF ── */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Subir Factura PDF — ${isUpaca ? 'Proveedor' : 'Cliente'}`}>
+      <Modal isOpen={isModalOpen} onClose={() => !uploading && setIsModalOpen(false)} title={`Subir Factura PDF — ${isUpaca ? 'Proveedor' : 'Cliente'}`}>
         <div style={{ padding:'8px' }}>
           <div
-            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={e => { e.preventDefault(); if (!uploading) setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
+            onDrop={uploading ? undefined : handleDrop}
             style={{
-              border: `2px dashed ${dragOver ? accent : '#cbd5e1'}`,
+              border: `2px dashed ${uploading ? '#94a3b8' : dragOver ? accent : '#cbd5e1'}`,
               borderRadius:'16px', padding:'48px 24px',
-              textAlign:'center', background: dragOver ? accentBg : '#f8fafc',
-              transition:'all 0.2s', cursor:'pointer',
+              textAlign:'center', background: uploading ? '#f1f5f9' : dragOver ? accentBg : '#f8fafc',
+              transition:'all 0.2s', cursor: uploading ? 'default' : 'pointer',
+              opacity: uploading ? 0.7 : 1,
             }}
-            onClick={() => document.getElementById('pdf-file-input').click()}
+            onClick={() => !uploading && document.getElementById('pdf-file-input').click()}
           >
-            <div style={{ fontSize:'48px', marginBottom:'12px' }}>📤</div>
+            <div style={{ fontSize:'48px', marginBottom:'12px' }}>{uploading ? '⏳' : '📤'}</div>
             <div style={{ fontSize:'16px', fontWeight:700, color:'#1e293b', marginBottom:'6px' }}>
-              Arrastra el PDF aquí o haz clic para seleccionar
+              {uploading ? 'Subiendo archivo a la nube...' : 'Arrastra el PDF aquí o haz clic para seleccionar'}
             </div>
             <div style={{ fontSize:'12px', color:'#64748b' }}>
-              Solo archivos PDF · Sin límite de tamaño
+              {uploading ? `Progreso: ${uploadProgress}%` : 'Solo archivos PDF · Se guardan en la nube de forma segura'}
             </div>
             <input
               id="pdf-file-input"
@@ -288,18 +382,52 @@ const Archivo = ({ type }) => {
               accept="application/pdf"
               onChange={handleFileUpload}
               style={{ display:'none' }}
+              disabled={uploading}
             />
           </div>
+
+          {/* Barra de progreso */}
+          {uploading && (
+            <div style={{ marginTop:'16px' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:'11px', color:'#475569', marginBottom:'4px' }}>
+                <span>Subiendo a Firebase Storage...</span>
+                <span style={{ fontWeight:800, color: accent }}>{uploadProgress}%</span>
+              </div>
+              <div style={{ height:8, background:'#e2e8f0', borderRadius:20, overflow:'hidden' }}>
+                <div style={{
+                  height:'100%',
+                  width:`${uploadProgress}%`,
+                  background: gradient,
+                  borderRadius:20,
+                  transition:'width 0.3s',
+                }} />
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje de error */}
+          {uploadError && (
+            <div style={{
+              marginTop:'12px', background:'rgba(239,68,68,0.08)', border:'1px solid #fca5a5',
+              borderRadius:10, padding:'10px 16px', fontSize:13, fontWeight:700, color:'#dc2626',
+              display:'flex', alignItems:'center', gap:8,
+            }}>
+              ❌ {uploadError}
+            </div>
+          )}
+
           <button
             style={{
-              marginTop:'16px', width:'100%', background: gradient,
+              marginTop:'16px', width:'100%', background: uploading ? '#94a3b8' : gradient,
               color:'white', border:'none', borderRadius:'10px',
-              padding:'13px', fontSize:'14px', fontWeight:800, cursor:'pointer',
-              boxShadow:`0 4px 16px ${glow}`,
+              padding:'13px', fontSize:'14px', fontWeight:800,
+              cursor: uploading ? 'default' : 'pointer',
+              boxShadow: uploading ? 'none' : `0 4px 16px ${glow}`,
             }}
-            onClick={() => document.getElementById('pdf-file-input').click()}
+            onClick={() => !uploading && document.getElementById('pdf-file-input').click()}
+            disabled={uploading}
           >
-            📂 Seleccionar Archivo PDF
+            {uploading ? `⏳ Subiendo ${uploadProgress}%...` : '📂 Seleccionar Archivo PDF'}
           </button>
         </div>
       </Modal>

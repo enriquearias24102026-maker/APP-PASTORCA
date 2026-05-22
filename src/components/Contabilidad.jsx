@@ -75,37 +75,60 @@ const Contabilidad = () => {
   /* ── KPI cards ── */
   const kpis = [
     {
-      label:'Ingresos Totales', sub:'Pre-facturas de Ventas',
-      value:`$ ${U.fmt(totalIngresos)}`,
-      bs: tasaBCV>0 ? U.fmtBs(totalIngresos,tasaBCV) : null,
-      icon:'💰', bg:'linear-gradient(135deg,#059669,#10b981)',
-      glow:'rgba(16,185,129,0.4)', border:'rgba(16,185,129,0.5)',
+      label: 'Ingresos Totales',
+      sub: 'Pre-facturas de Ventas',
+      value: `$ ${U.fmt(totalIngresos)}`,
+      bs: tasaBCV > 0 ? U.fmtBs(totalIngresos, tasaBCV) : null,
+      icon: '💰',
+      bg: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+      accent: '#10b981',
+      color: '#14532d',
+      subColor: '#16a34a',
+      glow: 'rgba(16,185,129,0.12)',
+      border: 'rgba(16,185,129,0.3)',
     },
     {
-      label:'Costos Totales', sub:'Compras a UPACA',
-      value:`$ ${U.fmt(totalCostos)}`,
-      bs: tasaBCV>0 ? U.fmtBs(totalCostos,tasaBCV) : null,
-      icon:'📦', bg:'linear-gradient(135deg,#0891b2,#06b6d4)',
-      glow:'rgba(6,182,212,0.4)', border:'rgba(6,182,212,0.5)',
+      label: 'Costos Totales',
+      sub: 'Compras a UPACA',
+      value: `$ ${U.fmt(totalCostos)}`,
+      bs: tasaBCV > 0 ? U.fmtBs(totalCostos, tasaBCV) : null,
+      icon: '📦',
+      bg: 'linear-gradient(135deg, #ecfeff, #cffafe)',
+      accent: '#06b6d4',
+      color: '#164e63',
+      subColor: '#0891b2',
+      glow: 'rgba(6,182,212,0.12)',
+      border: 'rgba(6,182,212,0.3)',
     },
     {
-      label: utilidad>=0 ? 'Utilidad Bruta' : 'Déficit Bruto',
-      sub:'Ingresos − Costos',
-      value:`$ ${U.fmt(utilidad)}`,
-      bs: tasaBCV>0 ? U.fmtBs(utilidad,tasaBCV) : null,
-      icon: utilidad>=0 ? '📈' : '📉',
-      bg: utilidad>=0 ? 'linear-gradient(135deg,#7c3aed,#8b5cf6)' : 'linear-gradient(135deg,#dc2626,#ef4444)',
-      glow: utilidad>=0 ? 'rgba(139,92,246,0.4)' : 'rgba(239,68,68,0.4)',
-      border: utilidad>=0 ? 'rgba(139,92,246,0.5)' : 'rgba(239,68,68,0.5)',
+      label: utilidad >= 0 ? 'Utilidad Bruta' : 'Déficit Bruto',
+      sub: 'Ingresos − Costos',
+      value: `$ ${U.fmt(utilidad)}`,
+      bs: tasaBCV > 0 ? U.fmtBs(utilidad, tasaBCV) : null,
+      icon: utilidad >= 0 ? '📈' : '📉',
+      bg: utilidad >= 0 
+        ? 'linear-gradient(135deg, #f5f3ff, #ede9fe)'
+        : 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+      accent: utilidad >= 0 ? '#7c3aed' : '#ef4444',
+      color: utilidad >= 0 ? '#4c1d95' : '#7f1d1d',
+      subColor: utilidad >= 0 ? '#7c3aed' : '#dc2626',
+      glow: utilidad >= 0 ? 'rgba(139,92,246,0.12)' : 'rgba(239,68,68,0.12)',
+      border: utilidad >= 0 ? 'rgba(139,92,246,0.3)' : 'rgba(239,68,68,0.3)',
     },
     {
-      label:'Margen Bruto', sub:'Rentabilidad %',
-      value:`${margen.toFixed(1)}%`,
+      label: 'Margen Bruto',
+      sub: 'Rentabilidad %',
+      value: `${margen.toFixed(1)}%`,
       bs: null,
-      icon:'📊',
-      bg: margen>=10 ? 'linear-gradient(135deg,#d97706,#f59e0b)' : 'linear-gradient(135deg,#dc2626,#ef4444)',
-      glow: margen>=10 ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.4)',
-      border: margen>=10 ? 'rgba(245,158,11,0.5)' : 'rgba(239,68,68,0.5)',
+      icon: '📊',
+      bg: margen >= 10 
+        ? 'linear-gradient(135deg, #fffbeb, #fef3c7)'
+        : 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+      accent: margen >= 10 ? '#f59e0b' : '#ef4444',
+      color: margen >= 10 ? '#78350f' : '#7f1d1d',
+      subColor: margen >= 10 ? '#d97706' : '#dc2626',
+      glow: margen >= 10 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)',
+      border: margen >= 10 ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)',
     },
   ];
 
@@ -162,16 +185,16 @@ const Contabilidad = () => {
             border:`1px solid ${k.border}`,
             position:'relative', overflow:'hidden',
           }}>
-            <div style={{ position:'absolute', top:-16, right:-12, fontSize:72, opacity:0.1, lineHeight:1 }}>{k.icon}</div>
-            <div style={{ fontSize:10, fontWeight:800, color:'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing:'1.2px', marginBottom:4 }}>
+            <div style={{ position:'absolute', bottom:-10, right:-10, fontSize:80, opacity:0.18, lineHeight:1, pointerEvents:'none' }}>{k.icon}</div>
+            <div style={{ fontSize:11, fontWeight:800, color:k.color, textTransform:'uppercase', letterSpacing:'1.2px', marginBottom:4 }}>
               {k.label}
             </div>
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', marginBottom:10 }}>{k.sub}</div>
-            <div style={{ fontSize:24, fontWeight:900, color:'white', letterSpacing:'-0.5px', lineHeight:1 }}>
+            <div style={{ fontSize:12, color:k.subColor, marginBottom:10, fontWeight:600 }}>{k.sub}</div>
+            <div style={{ fontSize:26, fontWeight:900, color:k.color, letterSpacing:'-0.5px', lineHeight:1 }}>
               {k.value}
             </div>
             {k.bs && (
-              <div style={{ fontSize:11, color:'rgba(255,255,255,0.65)', marginTop:8, fontWeight:600 }}>{k.bs}</div>
+              <div style={{ fontSize:13, color:k.color, marginTop:8, fontWeight:700 }}>{k.bs}</div>
             )}
           </div>
         ))}
@@ -180,19 +203,26 @@ const Contabilidad = () => {
       {/* ── QUICK STATS ROW ── */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14, marginBottom:28 }}>
         {[
-          { label:'Facturas pendientes de cobro', val:cxcItems.length, icon:'⏳', color:'#b45309', bg:'rgba(245,158,11,0.08)', border:'rgba(245,158,11,0.3)' },
-          { label:'Compras pendientes de pago', val:cxpItems.length, icon:'💳', color:'#dc2626', bg:'rgba(239,68,68,0.08)', border:'rgba(239,68,68,0.3)' },
-          { label:'Pagos realizados a UPACA', val:pagadasUpaca.length, icon:'✅', color:'#059669', bg:'rgba(16,185,129,0.08)', border:'rgba(16,185,129,0.3)' },
+          { label:'Facturas pendientes de cobro', val:cxcItems.length, icon:'⏳', color:'#9a3412', bg:'#fffbeb', border:'#fed7aa' },
+          { label:'Compras pendientes de pago', val:cxpItems.length, icon:'💳', color:'#991b1b', bg:'#fef2f2', border:'#fecaca' },
+          { label:'Pagos realizados a UPACA', val:pagadasUpaca.length, icon:'✅', color:'#065f46', bg:'#f0fdf4', border:'#bbf7d0' },
         ].map(s => (
           <div key={s.label} style={{
             background:s.bg, border:`1px solid ${s.border}`,
-            borderRadius:14, padding:'16px 20px',
-            display:'flex', alignItems:'center', gap:14,
+            borderRadius:16, padding:'18px 22px',
+            display:'flex', alignItems:'center', gap:16,
+            boxShadow:'0 4px 12px rgba(15,23,42,0.02)',
           }}>
-            <div style={{ fontSize:32 }}>{s.icon}</div>
+            <div style={{ 
+              width: 46, height: 46, borderRadius: 12, 
+              background: '#ffffff', display: 'flex', 
+              alignItems: 'center', justifyItems: 'center', justifyContent: 'center',
+              fontSize: 22, boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+              flexShrink: 0
+            }}>{s.icon}</div>
             <div>
               <div style={{ fontSize:28, fontWeight:900, color:s.color, lineHeight:1 }}>{s.val}</div>
-              <div style={{ fontSize:12, color:'#334155', fontWeight:600, marginTop:4 }}>{s.label}</div>
+              <div style={{ fontSize:12, color:'#334155', fontWeight:700, marginTop:6 }}>{s.label}</div>
             </div>
           </div>
         ))}
