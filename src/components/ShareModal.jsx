@@ -9,12 +9,15 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
   const [targetEmail, setTargetEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState({ type: '', msg: '', code: '' });
+  const [showEmailOptions, setShowEmailOptions] = useState(false);
+  const [clipBoardSuccess, setClipBoardSuccess] = useState(false);
 
   const activeData = item || extraData;
   if (!isOpen || !activeData) return null;
 
+  const docTypeLabel = activeData.tipoDocumento === 'nota' ? 'Nota de Entrega' : 'Pre-Factura';
   const itemName = activeData.nombre || activeData.nombreCompleto || activeData.razonSocial || 
-                   (type === 'pre-factura' ? `Pre-Factura #${activeData.numeroPreFactura}` : 'Elemento sin nombre');
+                   (type === 'pre-factura' ? `${docTypeLabel} #${activeData.numeroPreFactura}` : 'Elemento sin nombre');
   
   let itemInfo = '';
   if (type === 'producto') {
@@ -22,7 +25,7 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
   } else if (type === 'cliente') {
     itemInfo = `👤 Cliente: ${activeData.nombre}\n📞 Telf: ${activeData.telefono || 'N/A'}\n📧 Email: ${activeData.correo || 'N/A'}`;
   } else if (type === 'pre-factura') {
-    itemInfo = `📋 Pre-Factura: ${activeData.numeroPreFactura}\n👤 Cliente: ${activeData.clienteNombre}\n💰 Total: $ ${activeData.total}\n📅 Fecha: ${activeData.fecha}`;
+    itemInfo = `📋 ${docTypeLabel}: ${activeData.numeroPreFactura}\n👤 Cliente: ${activeData.clienteNombre}\n💰 Total: $ ${activeData.total}\n📅 Fecha: ${activeData.fecha}`;
   }
 
   // Helper to format line breaks for mailto
@@ -35,11 +38,33 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
     window.open(url, '_blank');
   };
 
-  // Email (General share)
-  const handleEmail = () => {
+  // Email sharing functions
+  const toggleEmailOptions = () => {
+    setShowEmailOptions(!showEmailOptions);
+  };
+
+  const handleMailto = () => {
     const subject = `Datos de ${type}: ${itemName}`;
     const body = `Te comparto la información de este ${type}:\n\n${itemInfo}\n\nSaludos!`;
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${formatForEmail(body)}`;
+  };
+
+  const handleGmailWeb = () => {
+    const subject = `Datos de ${type}: ${itemName}`;
+    const body = `Te comparto la información de este ${type}:\n\n${itemInfo}\n\nSaludos!`;
+    const url = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCopyToClipboard = () => {
+    const body = `Te comparto la información de este ${type}:\n\n${itemInfo}\n\nSaludos!`;
+    navigator.clipboard.writeText(body).then(() => {
+      setClipBoardSuccess(true);
+      setTimeout(() => setClipBoardSuccess(false), 3000);
+    }).catch(err => {
+      console.error('Error al copiar al portapapeles:', err);
+      alert('No se pudo copiar al portapapeles. Intenta seleccionarlo manualmente.');
+    });
   };
 
   // Interno (App to App)
@@ -140,19 +165,100 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
             </button>
             
             <button 
-              onClick={handleEmail} 
+              onClick={toggleEmailOptions} 
               style={{ 
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', 
-                padding: '16px', background: '#EA4335', color: 'white', border: 'none', 
-                borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: '700'
+                padding: '16px', background: '#EA4335', color: 'white', border: showEmailOptions ? '3px solid #b91c1c' : 'none', 
+                borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: '700',
+                boxShadow: showEmailOptions ? '0 0 12px rgba(234,67,53,0.5)' : 'none'
               }}
               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <span style={{ fontSize: '32px' }}>📧</span>
-              <span style={{ fontSize: '18px' }}>Email</span>
+              <span style={{ fontSize: '18px' }}>{showEmailOptions ? 'Opciones...' : 'Email'}</span>
             </button>
           </div>
+
+          {showEmailOptions && (
+            <div style={{
+              marginTop: '12px',
+              padding: '14px',
+              background: '#f8fafc',
+              border: '1.5px dashed #EA4335',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}>
+              <p style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: '800', color: '#EA4335', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Selecciona cómo enviar por correo:
+              </p>
+              
+              <button
+                type="button"
+                onClick={handleMailto}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '10px 14px', background: 'white', color: '#1e293b',
+                  border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '700', fontSize: '13px', textAlign: 'left', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#EA4335'; e.currentTarget.style.background = 'rgba(234,67,53,0.02)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = 'white'; }}
+              >
+                <span style={{ fontSize: '20px' }}>📬</span>
+                <div>
+                  <div style={{ fontWeight: 800 }}>Aplicación de Correo (Outlook / Mail)</div>
+                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'normal' }}>Usa el gestor de correo predeterminado del sistema</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGmailWeb}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '10px 14px', background: 'white', color: '#1e293b',
+                  border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '700', fontSize: '13px', textAlign: 'left', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#EA4335'; e.currentTarget.style.background = 'rgba(234,67,53,0.02)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = 'white'; }}
+              >
+                <span style={{ fontSize: '20px' }}>🌐</span>
+                <div>
+                  <div style={{ fontWeight: 800 }}>Gmail en la Web</div>
+                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'normal' }}>Abre una pestaña de Gmail para redactar desde el navegador</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyToClipboard}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '10px 14px', background: 'white', color: '#1e293b',
+                  border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '700', fontSize: '13px', textAlign: 'left', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#EA4335'; e.currentTarget.style.background = 'rgba(234,67,53,0.02)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = 'white'; }}
+              >
+                <span style={{ fontSize: '20px' }}>📋</span>
+                <div>
+                  <div style={{ fontWeight: 800 }}>Copiar al Portapapeles</div>
+                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'normal' }}>Copia el texto para pegarlo manualmente en tu correo</div>
+                </div>
+              </button>
+              
+              {clipBoardSuccess && (
+                <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: '800', textAlign: 'center', marginTop: '4px' }}>
+                  ¡Texto copiado con éxito! Ya puedes pegarlo.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {onPrint && (
