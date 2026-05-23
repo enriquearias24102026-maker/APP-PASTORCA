@@ -16,10 +16,11 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
     numeroPedido: compra ? (compra.numeroPedido || '') : '',
     fechaEmision: compra ? (compra.fechaEmision || compra.fecha || U.today()) : U.today(),
     fechaVencimiento: compra ? (compra.fechaVencimiento || '') : '',
-    tasaBCVUsada: compra ? (compra.tasaBCVUsada || tasaBCV) : tasaBCV,
   });
   const [items, setItems] = useState(compra ? (compra.items || []) : []);
   const [currentItem, setCurrentItem] = useState({ productoId: '', cantidad: 1, costoUnitario: 0 });
+  const [localTasaBCV, setLocalTasaBCV] = useState(compra ? String(compra.tasaBCVUsada || tasaBCV || '') : String(tasaBCV || ''));
+  const [tasaCalculo, setTasaCalculo] = useState(compra ? Number(compra.tasaBCVUsada || tasaBCV || 0) : Number(tasaBCV || 0));
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editItem, setEditItem] = useState({ productoId: '', cantidad: 1, costoUnitario: 0 });
@@ -170,9 +171,9 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
       fecha: form.fechaEmision, // Use emission date as primary date
       proveedorNombre: prov ? prov.nombre : '—',
       items,
-      tasaBCVUsada: Number(form.tasaBCVUsada) || tasaBCV,
+      tasaBCVUsada: Number(tasaCalculo) || 0,
       descuentoUpacaPct: Number(descuentoDefault),
-      totalBs: (Number(form.tasaBCVUsada) || tasaBCV) > 0 ? totals.total * (Number(form.tasaBCVUsada) || tasaBCV) : 0,
+      totalBs: tasaCalculo > 0 ? totals.total * tasaCalculo : 0,
       ...totals,
     });
   };
@@ -287,10 +288,17 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
           <label className="form-label" style={{ color: 'var(--accent-green)', fontWeight: 600 }}>💵 Tasa del Dólar</label>
           <input
             className="form-input"
-            type="number"
-            step="0.01"
-            value={form.tasaBCVUsada}
-            onChange={e => setForm(p => ({ ...p, tasaBCVUsada: e.target.value }))}
+            type="text"
+            inputMode="decimal"
+            value={localTasaBCV}
+            onChange={e => {
+              const val = e.target.value;
+              if (/^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                setLocalTasaBCV(val);
+                const num = parseFloat(String(val).replace(',', '.')) || 0;
+                setTasaCalculo(num);
+              }
+            }}
             placeholder="Tasa BCV"
             style={{ borderColor: 'var(--accent-green)' }}
           />
@@ -412,7 +420,7 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
             <th className="text-right">Subtotal + IVA</th>
             <th className="text-right" style={{ color: '#f59e0b' }}>Desc. %</th>
             <th className="text-right">Total ($)</th>
-            {tasaBCV > 0 && <th className="text-right">Total Bs.</th>}
+            {tasaCalculo > 0 && <th className="text-right">Total Bs.</th>}
             <th></th>
           </tr>
         </thead>
@@ -465,9 +473,9 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
                 )}
               </td>
               <td className="text-right" style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>$ {U.fmt(item.total)}</td>
-              {Number(form.tasaBCVUsada) > 0 && (
+              {tasaCalculo > 0 && (
                 <td className="text-right" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  {U.fmtBs(item.total, Number(form.tasaBCVUsada))}
+                  {U.fmtBs(item.total, tasaCalculo)}
                 </td>
               )}
               <td className="text-right" style={{ whiteSpace: 'nowrap' }}>
@@ -492,19 +500,20 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
               <span>Subtotal + IVA:</span><span>$ {U.fmt(totals.subtotalConIva)}</span>
             </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', color: '#f59e0b', fontWeight: 600 }}>
               <span>🏷️ Descuento UPACA:</span><span>- $ {U.fmt(totals.montoDescuento)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '20px', color: 'var(--accent-cyan)', borderTop: '2px solid var(--border-color)', paddingTop: '12px' }}>
               <span>TOTAL A PAGAR:</span><span>$ {U.fmt(totals.total)}</span>
             </div>
-            {Number(form.tasaBCVUsada) > 0 && (
+            {tasaCalculo > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontSize: '15px', color: 'var(--accent-green)', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border-color)' }}>
                 <span>Equivalente Bs. ({isEditing ? 'Tasa Pactada' : 'Tasa Manual'}):</span>
-                <span>{U.fmtBs(totals.total, Number(form.tasaBCVUsada))}</span>
+                <span>{U.fmtBs(totals.total, tasaCalculo)}</span>
               </div>
             )}
-            {!Number(form.tasaBCVUsada) && (
+            {!tasaCalculo && (
               <div style={{ fontSize: '11px', color: 'var(--accent-yellow)', marginTop: '8px', textAlign: 'center' }}>
                 ⚠ Ingrese la tasa del dólar para ver el equivalente en Bolívares
               </div>

@@ -179,7 +179,7 @@ export const AppDataProvider = ({ uid, children }) => {
             continue;
           }
 
-          const item = { id: docId, ...d.data() };
+          const item = { ...d.data(), id: docId };
           
           // Filtrar docs con flag deleted
           if (item.deleted === true) {

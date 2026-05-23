@@ -91,10 +91,15 @@ const Header = () => {
           {editingTasa ? (
             <input
               autoFocus
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               value={tasaInput}
-              onChange={e => setTasaInput(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                if (/^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                  setTasaInput(val);
+                }
+              }}
               onBlur={handleTasaSave}
               onKeyDown={handleTasaKeyDown}
               style={{

@@ -55,6 +55,33 @@ const Contabilidad = () => {
   const totalCostos   = data.compras.reduce((s,c) => s+(c.total||0), 0);
   const utilidad      = totalIngresos - totalCostos;
   const margen        = totalIngresos > 0 ? ((utilidad/totalIngresos)*100) : 0;
+
+  const totalIngresosBs = data.ventas.reduce((s, v) => {
+    if (v.totalBs) return s + v.totalBs;
+    const rate = v.tasaBCVUsada || tasaBCV || 0;
+    return s + (v.total * rate);
+  }, 0);
+
+  const totalCostosBs = data.compras.reduce((s, c) => {
+    if (c.totalBs) return s + c.totalBs;
+    const rate = c.tasaBCVUsada || tasaBCV || 0;
+    return s + (c.total * rate);
+  }, 0);
+
+  const utilidadBs = totalIngresosBs - totalCostosBs;
+
+  const totalCxCBs = cxcItems.reduce((s, v) => {
+    if (v.totalBs) return s + v.totalBs;
+    const rate = v.tasaBCVUsada || tasaBCV || 0;
+    return s + (v.total * rate);
+  }, 0);
+
+  const totalCxPBs = cxpItems.reduce((s, c) => {
+    const pagado = (Array.isArray(c.pagos) ? c.pagos : []).reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
+    const pendiente = c.total - pagado;
+    const rate = c.tasaBCVUsada || tasaBCV || 0;
+    return s + (pendiente * rate);
+  }, 0);
   const pagadasUpaca  = data.compras.filter(c => {
     const pagado = (Array.isArray(c.pagos) ? c.pagos : []).reduce((s, p) => s + (parseFloat(p.monto) || 0), 0) || (c.pagadaUpaca ? c.total : 0);
     return (c.total - pagado) <= 0.01;
@@ -78,7 +105,7 @@ const Contabilidad = () => {
       label: 'Ingresos Totales',
       sub: 'Pre-facturas de Ventas',
       value: `$ ${U.fmt(totalIngresos)}`,
-      bs: tasaBCV > 0 ? U.fmtBs(totalIngresos, tasaBCV) : null,
+      bs: totalIngresosBs > 0 ? 'Bs. ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(totalIngresosBs) : null,
       icon: '💰',
       bg: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
       accent: '#10b981',
@@ -91,7 +118,7 @@ const Contabilidad = () => {
       label: 'Costos Totales',
       sub: 'Compras a UPACA',
       value: `$ ${U.fmt(totalCostos)}`,
-      bs: tasaBCV > 0 ? U.fmtBs(totalCostos, tasaBCV) : null,
+      bs: totalCostosBs > 0 ? 'Bs. ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(totalCostosBs) : null,
       icon: '📦',
       bg: 'linear-gradient(135deg, #ecfeff, #cffafe)',
       accent: '#06b6d4',
@@ -104,7 +131,7 @@ const Contabilidad = () => {
       label: utilidad >= 0 ? 'Utilidad Bruta' : 'Déficit Bruto',
       sub: 'Ingresos − Costos',
       value: `$ ${U.fmt(utilidad)}`,
-      bs: tasaBCV > 0 ? U.fmtBs(utilidad, tasaBCV) : null,
+      bs: (totalIngresosBs > 0 || totalCostosBs > 0) ? 'Bs. ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(utilidadBs) : null,
       icon: utilidad >= 0 ? '📈' : '📉',
       bg: utilidad >= 0 
         ? 'linear-gradient(135deg, #f5f3ff, #ede9fe)'
@@ -233,7 +260,7 @@ const Contabilidad = () => {
         accent="#f59e0b" gradient="linear-gradient(135deg,#b45309,#d97706)"
         icon="⏳" title="Cuentas por Cobrar — Clientes"
         badge={`${cxcItems.length} pendiente${cxcItems.length!==1?'s':''}`}
-        totalUSD={totalCxC} totalBs={tasaBCV>0 ? U.fmtBs(totalCxC,tasaBCV) : null}
+        totalUSD={totalCxC} totalBs={totalCxCBs > 0 ? 'Bs. ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(totalCxCBs) : null}
       >
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
@@ -257,7 +284,7 @@ const Contabilidad = () => {
                 <td style={{ ...TD, fontWeight:700, color:'#0f172a' }}>{v.clienteNombre}</td>
                 <td style={{ ...TD, color:'#475569' }}>{v.clienteTelefono||'—'}</td>
                 <td style={{ ...TD, textAlign:'right', fontWeight:800, color:'#b45309', fontSize:13 }}>$ {U.fmt(v.total)}</td>
-                <td style={{ ...TD, textAlign:'right', fontSize:11, color:'#64748b' }}>{tasaBCV>0 ? U.fmtBs(v.total,v.tasaBCVUsada||tasaBCV) : '—'}</td>
+                <td style={{ ...TD, textAlign:'right', fontSize:11, color:'#64748b' }}>{(v.tasaBCVUsada || tasaBCV) > 0 ? U.fmtBs(v.total, v.tasaBCVUsada || tasaBCV) : '—'}</td>
                 <td style={TD}>
                     <button
                       onClick={() => handleMarkCobrada(v)}
@@ -282,7 +309,7 @@ const Contabilidad = () => {
         accent="#ef4444" gradient="linear-gradient(135deg,#b91c1c,#dc2626)"
         icon="💳" title="Cuentas por Pagar — UPACA"
         badge={`${cxpItems.length} pendiente${cxpItems.length!==1?'s':''}`}
-        totalUSD={totalCxP} totalBs={tasaBCV>0 ? U.fmtBs(totalCxP,tasaBCV) : null}
+        totalUSD={totalCxP} totalBs={totalCxPBs > 0 ? 'Bs. ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(totalCxPBs) : null}
       >
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
@@ -358,13 +385,12 @@ const Contabilidad = () => {
                 <td style={{ ...TD, fontWeight:800, color:'#0891b2', fontFamily:'monospace', fontSize:13 }}>{c.numeroFactura}</td>
                 <td style={{ ...TD, color:'#059669', fontWeight:700, fontSize:12 }}>🗓 {U.fmtDate(c.fechaPagoUpaca)}</td>
                 <td style={{ ...TD, textAlign:'right', fontWeight:800, color:'#059669', fontSize:13 }}>$ {U.fmt(c.total)}</td>
-                <td style={{ ...TD, textAlign:'right', fontSize:11, color:'#64748b' }}>{tasaBCV>0 ? U.fmtBs(c.total,c.tasaBCVUsada||tasaBCV) : '—'}</td>
+                <td style={{ ...TD, textAlign:'right', fontSize:11, color:'#64748b' }}>{(c.tasaBCVUsada || tasaBCV) > 0 ? U.fmtBs(c.total, c.tasaBCVUsada || tasaBCV) : '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </Section>
-
       <Modal
         isOpen={!!pagosCompra}
         onClose={() => setPagosCompra(null)}

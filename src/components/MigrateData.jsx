@@ -36,6 +36,7 @@ const MigrateData = ({ uid, userEmail, onDone }) => {
 
         for (const docSnap of snap.docs) {
           const data = docSnap.data();
+          delete data.id; // Evitar id redundante en el cuerpo del documento
           // Escribir en users/{uid}/colName
           await addDoc(
             collection(db, 'users', uid, colName),
