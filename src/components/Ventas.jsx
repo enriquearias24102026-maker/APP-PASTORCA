@@ -257,8 +257,15 @@ const Ventas = () => {
 
                     </div>
                   </td>
-                  <td style={{ ...tdSt, fontFamily:'monospace', fontWeight:800, color:'#1e40af', fontSize:12 }}>
-                    {v.numeroPreFactura||'—'}
+                  <td style={tdSt}>
+                    <div style={{ fontFamily:'monospace', fontWeight:800, color:'#1e40af', fontSize:12 }}>{v.numeroPreFactura||'—'}</div>
+                    <div style={{ marginTop: 4 }}>
+                      {v.tipoDocumento === 'nota' ? (
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: '#475569', background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>📝 Nota</span>
+                      ) : (
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: '#1d4ed8', background: '#dbeafe', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>📄 Factura</span>
+                      )}
+                    </div>
                   </td>
                   <td style={tdSt}>
                     <span style={{ background:'rgba(5,150,105,0.1)', color:'#065f46', borderRadius:8, padding:'3px 10px', fontSize:11, fontWeight:700 }}>

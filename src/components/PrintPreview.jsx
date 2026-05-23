@@ -16,8 +16,10 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
   const subtotalBruto  = data.subtotalBruto  || items.reduce((s, it) => s + (parseFloat(it.subtotalBruto)  || parseFloat(it.subtotal) || 0), 0);
   const descuentoTotal  = data.descuentoTotal  || items.reduce((s, it) => s + (parseFloat(it.montoDescuento) || 0), 0);
   const hasDescuento    = descuentoTotal > 0;
-  const itemsGravados   = items.filter(it => it.gravable);
-  const itemsExentos    = items.filter(it => !it.gravable);
+  const isNota          = data.tipoDocumento === 'nota';
+  const porcentajeIva   = Number(data.porcentajeIva ?? 16);
+  const itemsGravados   = isNota ? [] : items.filter(it => it.gravable);
+  const itemsExentos    = isNota ? items : items.filter(it => !it.gravable);
 
   const thStyle = {
     border: '1px solid #ccc', padding: '8px 10px', textAlign: 'left',
@@ -113,7 +115,9 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <h2 style={{ margin: 0, fontSize: '16px', color: '#1e40af' }}>PRE-FACTURA</h2>
+            <h2 style={{ margin: 0, fontSize: '16px', color: '#1e40af' }}>
+              {isNota ? 'NOTA DE ENTREGA' : 'PRE-FACTURA'}
+            </h2>
             <p style={{ margin: '4px 0', fontSize: '18px', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '1px' }}>
               N° {data.numeroPreFactura || '—'}
             </p>
@@ -160,8 +164,8 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
                   </td>
                 )}
                 <td style={{ ...tdStyle, textAlign: 'right' }}>$ {U.fmt(item.subtotal)}</td>
-                <td style={{ ...tdStyle, textAlign: 'center', fontSize: '11px', fontWeight: 600, color: item.gravable ? '#1e40af' : '#059669' }}>
-                  {item.gravable ? '16%' : 'EXENTO'}
+                <td style={{ ...tdStyle, textAlign: 'center', fontSize: '11px', fontWeight: 600, color: (!isNota && item.gravable) ? '#1e40af' : '#059669' }}>
+                  {(!isNota && item.gravable) ? `${porcentajeIva}%` : 'EXENTO'}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>$ {U.fmt(item.total)}</td>
               </tr>
@@ -185,18 +189,18 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px', color: '#475569' }}>
               <span>{hasDescuento ? 'Base Imponible:' : 'Subtotal:'}</span><span>$ {U.fmt(data.subtotal)}</span>
             </div>
-            {itemsExentos.length > 0 && (
+            {!isNota && itemsExentos.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', fontSize: '10px', color: '#059669', paddingLeft: '8px' }}>
                 <span>— Exento IVA (Leche):</span><span>$ {U.fmt(itemsExentos.reduce((s, it) => s + (it.subtotal || 0), 0))}</span>
               </div>
             )}
-            {itemsGravados.length > 0 && (
+            {!isNota && itemsGravados.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', fontSize: '10px', color: '#1e40af', paddingLeft: '8px' }}>
                 <span>— Base Gravada:</span><span>$ {U.fmt(itemsGravados.reduce((s, it) => s + (it.subtotal || 0), 0))}</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px', color: '#475569', marginTop: '4px' }}>
-              <span>I.V.A. (16%):</span><span>$ {U.fmt(data.iva)}</span>
+              <span>{`I.V.A. (${porcentajeIva}%):`}</span><span>$ {U.fmt(data.iva)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', borderTop: '2px solid #000', paddingTop: '8px', marginTop: '8px', color: '#0f172a' }}>
               <span>TOTAL ($):</span><span>$ {U.fmt(data.total)}</span>
@@ -217,9 +221,11 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
         )}
 
         {/* IVA note */}
-        <div style={{ marginTop: '12px', fontSize: '9px', color: '#999', textAlign: 'center', fontStyle: 'italic' }}>
-          * La Leche Pasteurizada está exenta del Impuesto al Valor Agregado (IVA) según la legislación venezolana vigente.
-        </div>
+        {!isNota && (
+          <div style={{ marginTop: '12px', fontSize: '9px', color: '#999', textAlign: 'center', fontStyle: 'italic' }}>
+            * La Leche Pasteurizada está exenta del Impuesto al Valor Agregado (IVA) según la legislación venezolana vigente.
+          </div>
+        )}
 
         {/* Signatures */}
         <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-around' }}>

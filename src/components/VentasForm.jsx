@@ -19,6 +19,26 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
   const [selCategoria, setSelCategoria] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editCur, setEditCur] = useState(null);
+  const [tipoDocumento, setTipoDocumento] = useState(venta?.tipoDocumento || 'factura');
+  const [porcentajeIva, setPorcentajeIva] = useState(venta ? Number(venta.porcentajeIva ?? 16) : 16);
+
+  const handleTipoDocumentoChange = (newTipo) => {
+    setTipoDocumento(newTipo);
+    setItems(prevItems => prevItems.map(item => {
+      const iva = (newTipo === 'factura' && item.gravable) ? U.r2up(item.subtotal * (porcentajeIva / 100)) : 0;
+      const total = U.r2(item.subtotal + iva);
+      return { ...item, iva, total };
+    }));
+  };
+
+  const handlePorcentajeIvaChange = (newPct) => {
+    setPorcentajeIva(newPct);
+    setItems(prevItems => prevItems.map(item => {
+      const iva = (tipoDocumento === 'factura' && item.gravable) ? U.r2up(item.subtotal * (newPct / 100)) : 0;
+      const total = U.r2(item.subtotal + iva);
+      return { ...item, iva, total };
+    }));
+  };
 
   const handleStartEdit = (idx) => {
     const item = items[idx];
@@ -53,7 +73,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
     const subtotalBruto  = U.r2(precioUnitario * cantidad);
     const montoDescuento = U.r2(subtotalBruto * descuentoPct);
     const subtotal       = U.r2(subtotalBruto - montoDescuento);
-    const iva            = gravable ? U.r2up(subtotal * 0.16) : 0;
+    const iva            = (tipoDocumento === 'factura' && gravable) ? U.r2up(subtotal * (porcentajeIva / 100)) : 0;
     const total          = U.r2(subtotal + iva);
 
     setItems(prev => prev.map((it, i) => i === editingIndex ? {
@@ -128,7 +148,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
     const subtotalBruto  = U.r2(precioUnitario * cantidad);
     const montoDescuento = U.r2(subtotalBruto * descuentoPct);
     const subtotal       = U.r2(subtotalBruto - montoDescuento);
-    const iva            = gravable ? U.r2up(subtotal * 0.16) : 0;
+    const iva            = (tipoDocumento === 'factura' && gravable) ? U.r2up(subtotal * (porcentajeIva / 100)) : 0;
     const total          = U.r2(subtotal + iva);
 
     setItems(prev => [...prev, {
@@ -159,6 +179,8 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
       estadoPago: isEdit ? venta.estadoPago : 'pendiente', tasaBCVUsada: Number(tasaCalculo) || 0,
       totalBs: tasaCalculo>0 ? totals.total*tasaCalculo : 0,
       subtotalBruto: totals.subtotalBruto, descuentoTotal: totals.descuentoTotal,
+      tipoDocumento,
+      porcentajeIva: tipoDocumento === 'nota' ? 0 : Number(porcentajeIva),
       ...totals,
     });
   };
@@ -202,7 +224,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
         <div style={{ background:'linear-gradient(135deg,#1e40af,#2563eb)', padding:'11px 20px' }}>
           <span style={{ fontSize:13, fontWeight:800, color:'white' }}>{'Datos de la Pre-Factura'}</span>
         </div>
-        <div style={{ padding:'18px 20px', display:'grid', gridTemplateColumns:'2.5fr 1.25fr 1.25fr 1.5fr', gap:14 }}>
+        <div style={{ padding:'18px 20px', display:'grid', gridTemplateColumns:'2.5fr 1.25fr 0.8fr 1.25fr 1.25fr 1.5fr', gap:14 }}>
           <div>
             <label style={lbl}>{'CLIENTE'}</label>
             <select value={clienteId} onChange={e=>setClienteId(e.target.value)}
@@ -210,6 +232,35 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
               <option value="">{'-- Seleccionar cliente --'}</option>
               {data.clientes.map(c=><option key={c.id} value={String(c.id)}>{c.nombre+' | '+c.rif}</option>)}
             </select>
+          </div>
+          <div>
+            <label style={lbl}>{'TIPO DOCUMENTO'}</label>
+            <select value={tipoDocumento} onChange={e=>handleTipoDocumentoChange(e.target.value)}
+              style={{ ...inp, cursor:'pointer', borderColor:'#2563eb', background:'rgba(37,99,235,0.02)', fontWeight:700 }}>
+              <option value="factura">{'📄 Factura (con IVA)'}</option>
+              <option value="nota">{'📝 Nota de Entrega (sin IVA)'}</option>
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>{'IVA %'}</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={tipoDocumento === 'nota' ? 0 : porcentajeIva}
+              onChange={e => {
+                const val = Number(e.target.value);
+                if (val >= 0 && val <= 100) {
+                  handlePorcentajeIvaChange(val);
+                }
+              }}
+              disabled={tipoDocumento === 'nota'}
+              style={{
+                ...inp,
+                background: tipoDocumento === 'nota' ? '#f1f5f9' : 'white',
+                color: tipoDocumento === 'nota' ? '#94a3b8' : '#1e293b'
+              }}
+            />
           </div>
           <div>
             <label style={lbl}>{'FECHA FACTURA'}</label>
@@ -348,9 +399,9 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                 <span style={{ color:'#94a3b8' }}>{'-->'}</span>
                 <span style={{ fontSize:12, fontWeight:700, color:'#1e40af' }}>
                   {'Precio cliente: $ '+U.fmt(previewFinal)}
-                  {previewProd.gravable
-                    ? <span style={{ color:'#d97706', marginLeft:4 }}>{' + IVA 16%'}</span>
-                    : <span style={{ color:'#059669', marginLeft:4 }}>{' (Exento)'}</span>}
+                  {(tipoDocumento === 'factura' && previewProd.gravable)
+                    ? <span style={{ color:'#d97706', marginLeft:4 }}>{' + IVA ' + porcentajeIva + '%'}</span>
+                    : <span style={{ color:'#059669', marginLeft:4 }}>{tipoDocumento === 'nota' ? ' (Nota de Entrega - Sin IVA)' : ' (Exento)'}</span>}
                 </span>
               </div>
             )}
@@ -468,9 +519,9 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                 <span style={{ color:'#94a3b8' }}>{'-->'}</span>
                 <span style={{ fontSize:12, fontWeight:700, color:'#1e40af' }}>
                   {'Precio cliente: $ '+U.fmt(editFinal)}
-                  {editProd.gravable
-                    ? <span style={{ color:'#d97706', marginLeft:4 }}>{' + IVA 16%'}</span>
-                    : <span style={{ color:'#059669', marginLeft:4 }}>{' (Exento)'}</span>}
+                  {(tipoDocumento === 'factura' && editProd.gravable)
+                    ? <span style={{ color:'#d97706', marginLeft:4 }}>{' + IVA ' + porcentajeIva + '%'}</span>
+                    : <span style={{ color:'#059669', marginLeft:4 }}>{tipoDocumento === 'nota' ? ' (Nota de Entrega - Sin IVA)' : ' (Exento)'}</span>}
                 </span>
               </div>
             )}
@@ -535,9 +586,9 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                   </td>
                   <td style={{ ...tdS, textAlign:'right', fontWeight:600, color:'#334155' }}>{'$ '+U.fmt(it.precioUnitario)}</td>
                   <td style={{ ...tdS, textAlign:'right' }}>
-                    {it.gravable
+                    {(tipoDocumento === 'factura' && it.gravable)
                       ? <span style={{ background:'rgba(245,158,11,0.1)', color:'#b45309', borderRadius:8, padding:'2px 8px', fontSize:11, fontWeight:700 }}>{'$ '+U.fmt(it.iva)}</span>
-                      : <span style={{ background:'rgba(5,150,105,0.1)', color:'#059669', borderRadius:8, padding:'2px 8px', fontSize:11, fontWeight:700 }}>{'Exento'}</span>}
+                      : <span style={{ background:'rgba(5,150,105,0.1)', color:'#059669', borderRadius:8, padding:'2px 8px', fontSize:11, fontWeight:700 }}>{tipoDocumento === 'nota' ? 'Nota' : 'Exento'}</span>}
                   </td>
                   <td style={{ ...tdS, textAlign:'right', fontWeight:800, color:'#059669', fontSize:14 }}>{'$ '+U.fmt(it.total)}</td>
                   {tasaCalculo>0 && <td style={{ ...tdS, textAlign:'right', fontSize:11, color:'#64748b' }}>{U.fmtBs(it.total,tasaCalculo)}</td>}
@@ -572,7 +623,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                 <span>{'Base imponible:'}</span><strong>{'$ '+U.fmt(totals.subtotal)}</strong>
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:13, color:'#475569' }}>
-                <span>{'IVA (16%):'}</span><strong>{'$ '+U.fmt(totals.iva)}</strong>
+                <span>{`IVA (${tipoDocumento === 'nota' ? 0 : porcentajeIva}%):`}</span><strong>{'$ '+U.fmt(totals.iva)}</strong>
               </div>
               <div style={{ borderTop:'2px solid #e2e8f0', paddingTop:12, marginTop:4, display:'flex', justifyContent:'space-between', fontSize:20, fontWeight:900, color:'#059669' }}>
                 <span>{'TOTAL USD'}</span><span>{'$ '+U.fmt(totals.total)}</span>

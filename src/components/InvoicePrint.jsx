@@ -11,8 +11,10 @@ const InvoicePrint = ({ data }) => {
   const descuentoTotal  = data.descuentoTotal  || items.reduce((s, it) => s + (parseFloat(it.montoDescuento) || 0), 0);
   const hasDescuento    = descuentoTotal > 0;
 
-  const itemsGravados = items.filter(it => it.gravable);
-  const itemsExentos  = items.filter(it => !it.gravable);
+  const isNota = data.tipoDocumento === 'nota';
+  const porcentajeIva = Number(data.porcentajeIva ?? 16);
+  const itemsGravados = isNota ? [] : items.filter(it => it.gravable);
+  const itemsExentos  = isNota ? items : items.filter(it => !it.gravable);
 
   return (
     <div className="print-area print-invoice">
@@ -39,7 +41,9 @@ const InvoicePrint = ({ data }) => {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', color: '#1e40af' }}>PRE-FACTURA</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', color: '#1e40af' }}>
+            {isNota ? 'NOTA DE ENTREGA' : 'PRE-FACTURA'}
+          </h2>
           <p style={{ margin: '5px 0', fontSize: '18px', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '1px' }}>
             N° {data.numeroPreFactura || '—'}
           </p>
@@ -86,7 +90,7 @@ const InvoicePrint = ({ data }) => {
               )}
               <td style={{ textAlign: 'right' }}>$ {U.fmt(item.subtotal)}</td>
               <td style={{ textAlign: 'center', fontSize: '11px' }}>
-                {item.gravable ? '16%' : 'EXENTO'}
+                {(!isNota && item.gravable) ? `${porcentajeIva}%` : 'EXENTO'}
               </td>
               <td style={{ textAlign: 'right', fontWeight: 600 }}>$ {U.fmt(item.total)}</td>
             </tr>
@@ -117,13 +121,13 @@ const InvoicePrint = ({ data }) => {
         </div>
 
         {/* IVA breakdown */}
-        {itemsExentos.length > 0 && (
+        {!isNota && itemsExentos.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', fontSize: '12px', color: '#666' }}>
-            <span style={{ paddingLeft: '10px' }}>— Exento de IVA (Leche Pasteurizada):</span>
+            <span style={{ paddingLeft: '10px' }}>— Exento de IVA:</span>
             <span>$ {U.fmt(itemsExentos.reduce((s, it) => s + (it.subtotal || 0), 0))}</span>
           </div>
         )}
-        {itemsGravados.length > 0 && (
+        {!isNota && itemsGravados.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', fontSize: '12px', color: '#666' }}>
             <span style={{ paddingLeft: '10px' }}>— Gravado (Base para IVA):</span>
             <span>$ {U.fmt(itemsGravados.reduce((s, it) => s + (it.subtotal || 0), 0))}</span>
@@ -132,7 +136,7 @@ const InvoicePrint = ({ data }) => {
 
         {/* IVA amount */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', marginTop: '5px' }}>
-          <span>I.V.A. (16%):</span>
+          <span>I.V.A. ({porcentajeIva}%):</span>
           <span>$ {U.fmt(data.iva)}</span>
         </div>
 
@@ -159,9 +163,11 @@ const InvoicePrint = ({ data }) => {
       )}
 
       {/* Nota IVA */}
-      <div style={{ marginTop: '15px', fontSize: '10px', color: '#777', textAlign: 'center', fontStyle: 'italic' }}>
-        * La Leche Pasteurizada está exenta del Impuesto al Valor Agregado (IVA) según la legislación venezolana vigente.
-      </div>
+      {!isNota && (
+        <div style={{ marginTop: '15px', fontSize: '10px', color: '#777', textAlign: 'center', fontStyle: 'italic' }}>
+          * La Leche Pasteurizada está exenta del Impuesto al Valor Agregado (IVA) según la legislación venezolana vigente.
+        </div>
+      )}
 
       {/* Signatures */}
       <div style={{ marginTop: '80px', display: 'flex', justifyContent: 'space-around' }}>
