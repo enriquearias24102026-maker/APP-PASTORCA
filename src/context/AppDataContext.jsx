@@ -281,12 +281,28 @@ export const AppDataProvider = ({ uid, children }) => {
   const triggerShare = (item, type, onPrint = null) => setShareData({ item, type, onPrint });
   const closeShare = () => setShareData(null);
 
+  const [printData, setPrintData] = useState(null);
+  const triggerPrint = useCallback((item) => {
+    setPrintData(item);
+  }, []);
+
+  useEffect(() => {
+    if (printData) {
+      const timer = setTimeout(() => {
+        window.print();
+        setPrintData(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [printData]);
+
   const value = {
     currentView, setCurrentView,
     data, addItem, removeItem, updateItem, saveToLS, clearLocalCache,
     loading, tasaBCV, tasaBCVFecha, setTasaBCV,
     config, setConfig,
     shareData, triggerShare, closeShare,
+    printData, triggerPrint,
     transfers: [], loadingTrans: false
   };
 
