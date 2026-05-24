@@ -75,6 +75,12 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
       return;
     }
 
+    const container = document.getElementById('print-preview-modal-container');
+    const prevScroll = container ? container.scrollTop : 0;
+    if (container) {
+      container.scrollTop = 0;
+    }
+
     try {
       const html2pdf = await U.loadHtml2Pdf();
       const numero = activeData.numeroPreFactura || 'documento';
@@ -82,13 +88,25 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
         margin:       [10, 10, 10, 10], // mm
         filename:     `PreFactura_${numero}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true, 
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0,
+          height: element.scrollHeight,
+          windowHeight: element.scrollHeight + 150
+        },
         jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(element).save();
+      await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error('Error al generar PDF desde ShareModal:', err);
       alert('Hubo un error al generar el PDF. Por favor, intenta de nuevo.');
+    } finally {
+      if (container) {
+        container.scrollTop = prevScroll;
+      }
     }
   };
 
