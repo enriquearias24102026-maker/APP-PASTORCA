@@ -57,5 +57,18 @@ export const U = {
   isToday(dateStr) {
     if (!dateStr) return false;
     return dateStr === new Date().toISOString().split('T')[0];
+  },
+  loadHtml2Pdf() {
+    return new Promise((resolve, reject) => {
+      if (window.html2pdf) {
+        resolve(window.html2pdf);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = () => resolve(window.html2pdf);
+      script.onerror = (err) => reject(err);
+      document.body.appendChild(script);
+    });
   }
 };

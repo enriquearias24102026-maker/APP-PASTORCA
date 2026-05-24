@@ -7,6 +7,27 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
   // const [shareOpen, setShareOpen] = useState(false); // REMOVED
   const logoSrc = config?.logoUrl || '/logo-marcosbarco.png';
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('invoice-print-content');
+    if (!element) return;
+
+    try {
+      const html2pdf = await U.loadHtml2Pdf();
+      const numero = data.numeroPreFactura || 'factura';
+      const opt = {
+        margin:       [10, 10, 10, 10], // mm
+        filename:     `PreFactura_${numero}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error('Error al generar PDF:', err);
+      alert('Hubo un error al generar el PDF. Por favor, intenta de nuevo.');
+    }
+  };
+
   if (!data) return null;
 
   // Safety: ensure items is always an array
@@ -64,6 +85,18 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
+            onClick={handleDownloadPDF}
+            style={{
+              background: 'linear-gradient(135deg, #1e40af, #2563eb)',
+              border: 'none', color: 'white', borderRadius: '10px',
+              padding: '9px 18px', fontSize: '13px', fontWeight: 700,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+            }}
+          >
+            📥 Descargar PDF
+          </button>
+          <button
             onClick={() => triggerShare(data, 'pre-factura', onPrint)}
             style={{
               background: 'linear-gradient(135deg, #059669, #10b981)',
@@ -86,6 +119,7 @@ const PrintPreview = ({ data, onPrint, onClose }) => {
 
       {/* Invoice content - full page, scrollable */}
       <div
+        id="invoice-print-content"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '820px',

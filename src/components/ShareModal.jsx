@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { U } from '../utils';
 import Modal from './Modal';
 
 const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) => {
@@ -65,6 +66,30 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
       console.error('Error al copiar al portapapeles:', err);
       alert('No se pudo copiar al portapapeles. Intenta seleccionarlo manualmente.');
     });
+  };
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('invoice-print-content');
+    if (!element) {
+      alert('No se encontró el contenido del documento para generar el PDF. Asegúrate de tener abierta la vista previa.');
+      return;
+    }
+
+    try {
+      const html2pdf = await U.loadHtml2Pdf();
+      const numero = activeData.numeroPreFactura || 'documento';
+      const opt = {
+        margin:       [10, 10, 10, 10], // mm
+        filename:     `PreFactura_${numero}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error('Error al generar PDF desde ShareModal:', err);
+      alert('Hubo un error al generar el PDF. Por favor, intenta de nuevo.');
+    }
   };
 
   // Interno (App to App)
@@ -260,6 +285,25 @@ const ShareModal = ({ isOpen, onClose, item, type, onPrint, data: extraData }) =
             </div>
           )}
         </div>
+
+        {type === 'pre-factura' && (
+          <button 
+            type="button"
+            onClick={handleDownloadPDF} 
+            style={{ 
+              width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', 
+              padding: '16px', background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: 'white', border: 'none', 
+              borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: '900',
+              fontSize: '20px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(37,99,235,0.3)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <span style={{ fontSize: '28px' }}>📥</span>
+            <span>DESCARGAR PDF</span>
+          </button>
+        )}
 
         {onPrint && (
           <button 
