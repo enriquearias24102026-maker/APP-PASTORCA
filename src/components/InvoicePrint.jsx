@@ -1,7 +1,11 @@
 import React from 'react';
 import { U } from '../utils';
+import { useAppData } from '../context/AppDataContext';
 
 const InvoicePrint = ({ data }) => {
+  const { config } = useAppData();
+  const logoSrc = config?.logoUrl || '/logo-marcosbarco.png';
+
   if (!data) return null;
 
   const items = Array.isArray(data.items) ? data.items : [];
@@ -19,24 +23,24 @@ const InvoicePrint = ({ data }) => {
   return (
     <div className="print-area print-invoice">
       <div className="print-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
-            src="/logo-upaca.png"
-            alt="UPACA"
+            src={logoSrc}
+            alt="Logo Empresa"
             style={{
-              width: 72,
-              height: 72,
+              width: 80,
+              height: 80,
               objectFit: 'contain',
-              borderRadius: '8px',
+              borderRadius: '10px',
             }}
+            onError={e => { e.target.src = '/logo-marcosbarco.png'; }}
           />
           <div>
-            <h1 style={{ color: '#c41e1e', margin: 0, fontSize: '22px', letterSpacing: '1px' }}>UPACA</h1>
-            <p style={{ margin: '2px 0', fontSize: '11px', color: '#555' }}>Unión de Productores de Leche del Estado Monagas</p>
-            <p style={{ margin: '3px 0', fontSize: '13px', fontWeight: 600, color: '#000' }}>Control de Facturación Láctea</p>
-            <div style={{ fontSize: '11px', marginTop: '6px', color: '#333' }}>
-              <strong>Representante:</strong> MARCOS MANUEL BARCO GUEVARA<br />
-              <strong>RIF:</strong> V-132498396
+            <h1 style={{ color: '#1e3a8a', margin: 0, fontSize: '18px', letterSpacing: '0.5px', fontWeight: 900 }}>MARCOS MANUEL BARCO GUEVARA</h1>
+            <p style={{ margin: '2px 0', fontSize: '10px', color: '#555' }}>Distribución de Productos Lácteos y Bebidas</p>
+            <div style={{ fontSize: '10px', marginTop: '4px', color: '#333' }}>
+              <strong>RIF:</strong> V-132498396<br />
+              <strong>Maturín, Estado Monagas — Venezuela</strong>
             </div>
           </div>
         </div>
