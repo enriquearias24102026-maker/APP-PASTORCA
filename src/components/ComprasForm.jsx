@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { U } from '../utils';
 
@@ -26,6 +26,39 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
   const [editItem, setEditItem] = useState({ productoId: '', cantidad: 1, costoUnitario: 0 });
   const [descuentoDefault, setDescuentoDefault] = useState(compra?.descuentoUpacaPct ?? 3); // % default para nuevos items
   const [editingDescIdx, setEditingDescIdx] = useState(null); // índice del item cuyo descuento se edita inline
+  const [selCategoria, setSelCategoria] = useState(''); // filtro por categoría
+
+  // ── Derive unique categories + filtered/grouped products ───────
+  const categorias = useMemo(() => {
+    return Array.from(new Set(data.productos.map(p => p.categoria).filter(Boolean))).sort();
+  }, [data.productos]);
+
+  const productosAgrupados = useMemo(() => {
+    const groups = {};
+    data.productos.forEach(p => {
+      const cat = p.categoria || 'Otros';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+    return groups;
+  }, [data.productos]);
+
+  const filteredProductos = useMemo(() => {
+    return selCategoria
+      ? data.productos.filter(p => p.categoria === selCategoria)
+      : data.productos;
+  }, [data.productos, selCategoria]);
+
+  const handleCategoriaChange = (cat) => {
+    setSelCategoria(cat);
+    // If a product is selected but doesn't belong to the new category, clear it
+    if (cat && currentItem.productoId) {
+      const prod = data.productos.find(p => String(p.id) === String(currentItem.productoId));
+      if (prod?.categoria !== cat) {
+        setCurrentItem(prev => ({ ...prev, productoId: '', costoUnitario: 0 }));
+      }
+    }
+  };
 
   // Live totals — always re-derived from items (never stale)
   const totals = {
@@ -90,6 +123,11 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
       cantidad: item.cantidad,
       costoUnitario: item.costoUnitario 
     });
+    // Auto-select the category of the product being edited
+    const prod = data.productos.find(p => String(p.id) === String(item.productoId));
+    if (prod?.categoria) {
+      setSelCategoria(prod.categoria);
+    }
   };
 
   const handleConfirmEdit = () => {
@@ -344,7 +382,19 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
       {editingIndex === null && (
         <div style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid var(--accent-cyan)', borderRadius: '10px', padding: '16px', margin: '20px 0' }}>
           <h4 style={{ fontSize: '13px', color: 'var(--accent-cyan)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>➕ Agregar Producto a la Factura</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 1fr auto', gap: '12px', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr 0.6fr 0.8fr auto', gap: '12px', alignItems: 'end' }}>
+            {/* Categoría */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>Categoría</label>
+              <select className="form-select" value={selCategoria} onChange={e => handleCategoriaChange(e.target.value)}
+                style={{ borderColor: 'rgba(6,182,212,0.4)', background: 'rgba(6,182,212,0.03)' }}>
+                <option value="">— Todas —</option>
+                {categorias.map(cat => (
+                  <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            {/* Producto */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Producto</label>
               <select className="form-select" value={currentItem.productoId} onChange={e => {
@@ -356,13 +406,27 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
                 }));
               }}>
                 <option value="">— Seleccionar producto —</option>
-                {data.productos.map(p => <option key={p.id} value={String(p.id)}>{p.descripcion} ({p.presentacion}) — ${U.fmt(p.precioCosto)}</option>)}
+                {selCategoria ? (
+                  [...filteredProductos].sort((a,b) => (a.descripcion||'').localeCompare(b.descripcion||'')).map(p => (
+                    <option key={p.id} value={String(p.id)}>{p.descripcion} ({p.presentacion}) — ${U.fmt(p.precioCosto)}</option>
+                  ))
+                ) : (
+                  Object.keys(productosAgrupados).sort().map(cat => (
+                    <optgroup key={cat} label={cat.toUpperCase()}>
+                      {[...productosAgrupados[cat]].sort((a,b) => (a.descripcion||'').localeCompare(b.descripcion||'')).map(p => (
+                        <option key={p.id} value={String(p.id)}>{p.descripcion} ({p.presentacion}) — ${U.fmt(p.precioCosto)}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                )}
               </select>
             </div>
+            {/* Cantidad */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Cantidad</label>
               <input className="form-input" type="number" min="1" value={currentItem.cantidad} onChange={e => setCurrentItem(p => ({ ...p, cantidad: e.target.value }))} />
             </div>
+            {/* Costo Unitario */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Costo Unit. ($)</label>
               <input className="form-input" type="number" step="0.01" value={currentItem.costoUnitario} onChange={e => setCurrentItem(p => ({ ...p, costoUnitario: e.target.value }))} />
@@ -379,7 +443,19 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
             ✏️ Modificar Producto — Línea {editingIndex + 1}
             <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', fontSize: '12px' }}>({items[editingIndex]?.descripcion})</span>
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.6fr 0.8fr auto auto', gap: '12px', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr 0.5fr 0.7fr auto auto', gap: '12px', alignItems: 'end' }}>
+            {/* Categoría */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ color: '#8b5cf6', fontWeight: 700 }}>Categoría</label>
+              <select className="form-select" value={selCategoria} onChange={e => handleCategoriaChange(e.target.value)}
+                style={{ borderColor: 'rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.03)' }}>
+                <option value="">— Todas —</option>
+                {categorias.map(cat => (
+                  <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            {/* Producto */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Nuevo Producto</label>
               <select className="form-select" value={editItem.productoId} onChange={e => {
@@ -391,13 +467,27 @@ const ComprasForm = ({ compra, onSave, onCancel }) => {
                 }));
               }}>
                 <option value="">— Seleccionar producto —</option>
-                {data.productos.map(p => <option key={p.id} value={String(p.id)}>{p.descripcion} ({p.presentacion}) — ${U.fmt(p.precioCosto)}</option>)}
+                {selCategoria ? (
+                  [...filteredProductos].sort((a,b) => (a.descripcion||'').localeCompare(b.descripcion||'')).map(p => (
+                    <option key={p.id} value={String(p.id)}>{p.descripcion} ({p.presentacion}) — ${U.fmt(p.precioCosto)}</option>
+                  ))
+                ) : (
+                  Object.keys(productosAgrupados).sort().map(cat => (
+                    <optgroup key={cat} label={cat.toUpperCase()}>
+                      {[...productosAgrupados[cat]].sort((a,b) => (a.descripcion||'').localeCompare(b.descripcion||'')).map(p => (
+                        <option key={p.id} value={String(p.id)}>{p.descripcion} ({p.presentacion}) — ${U.fmt(p.precioCosto)}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                )}
               </select>
             </div>
+            {/* Cantidad */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Cant.</label>
               <input className="form-input" type="number" min="1" value={editItem.cantidad} onChange={e => setEditItem(p => ({ ...p, cantidad: e.target.value }))} />
             </div>
+            {/* Costo */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Costo ($)</label>
               <input className="form-input" type="number" step="0.01" value={editItem.costoUnitario} onChange={e => setEditItem(p => ({ ...p, costoUnitario: e.target.value }))} />
