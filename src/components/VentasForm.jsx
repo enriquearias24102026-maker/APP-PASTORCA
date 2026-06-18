@@ -13,7 +13,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
   const [fechaEntrega,  setFechaEntrega]  = useState(venta?.fechaEntrega  || '');
   const [observaciones, setObservaciones] = useState(venta?.observaciones || '');
   const [items,         setItems]         = useState(venta?.items         || []);
-  const [cur, setCur] = useState({ productoId:'', cantidad:1, tipoEmbalaje:'Cesta', margen:20, descuento:0 });
+  const [cur, setCur] = useState({ productoId:'', cantidad:1, tipoEmbalaje:'Cesta', margen:20, descuento:0, precioUnitario: 0 });
   const [localTasaBCV, setLocalTasaBCV] = useState(venta ? String(venta.tasaBCVUsada || tasaBCV || '') : String(tasaBCV || ''));
   const [tasaCalculo, setTasaCalculo] = useState(venta ? Number(venta.tasaBCVUsada || tasaBCV || 0) : Number(tasaBCV || 0));
   const [selCategoria, setSelCategoria] = useState('');
@@ -49,6 +49,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
       tipoEmbalaje: item.tipoEmbalaje || 'Cesta',
       margen: item.margen,
       descuento: item.descuento,
+      precioUnitario: item.precioUnitario,
     });
     const prod = data.productos.find(p => String(p.id) === String(item.productoId));
     if (prod?.categoria) {
@@ -69,7 +70,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
     const gravable       = Boolean(prod.gravable);
     const margenPct      = Number(editCur.margen) / 100;
     const descuentoPct   = Number(editCur.descuento) / 100;
-    const precioUnitario = U.r2(precioCosto * (1 + margenPct));
+    const precioUnitario = Number(editCur.precioUnitario) || U.r2(precioCosto * (1 + margenPct));
     const subtotalBruto  = U.r2(precioUnitario * cantidad);
     const montoDescuento = U.r2(subtotalBruto * descuentoPct);
     const subtotal       = U.r2(subtotalBruto - montoDescuento);
@@ -120,7 +121,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
     if (cat && cur.productoId) {
       const prod = data.productos.find(p => String(p.id) === String(cur.productoId));
       if (prod?.categoria !== cat) {
-        setCur(prev => ({ ...prev, productoId: '' }));
+        setCur(prev => ({ ...prev, productoId: '', precioUnitario: 0 }));
       }
     }
   };
@@ -144,7 +145,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
     const gravable       = Boolean(prod.gravable);
     const margenPct      = Number(cur.margen) / 100;
     const descuentoPct   = Number(cur.descuento) / 100;
-    const precioUnitario = U.r2(precioCosto * (1 + margenPct));
+    const precioUnitario = Number(cur.precioUnitario) || U.r2(precioCosto * (1 + margenPct));
     const subtotalBruto  = U.r2(precioUnitario * cantidad);
     const montoDescuento = U.r2(subtotalBruto * descuentoPct);
     const subtotal       = U.r2(subtotalBruto - montoDescuento);
@@ -160,7 +161,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
       tipoEmbalaje: cur.tipoEmbalaje || 'Cesta',
       subtotalBruto, montoDescuento, cantidad, subtotal, iva, total,
     }]);
-    setCur(p => ({ ...p, productoId:'', cantidad:1, tipoEmbalaje:'Cesta' }));
+    setCur(p => ({ ...p, productoId:'', cantidad:1, tipoEmbalaje:'Cesta', precioUnitario: 0 }));
   };
 
   const handleRemoveItem = idx => setItems(prev => prev.filter((_,i) => i !== idx));
@@ -187,12 +188,12 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
 
   const previewProd   = data.productos.find(p => String(p.id)===String(cur.productoId));
   const previewCosto  = previewProd ? Number(previewProd.precioCosto)||0 : 0;
-  const previewMargen = previewCosto * (1 + Number(cur.margen)/100);
+  const previewMargen = Number(cur.precioUnitario) || U.r2(previewCosto * (1 + Number(cur.margen)/100));
   const previewFinal  = previewMargen * (1 - Number(cur.descuento)/100);
 
   const editProd   = (editingIndex !== null && editCur) ? data.productos.find(p => String(p.id)===String(editCur.productoId)) : null;
   const editCosto  = editProd ? Number(editProd.precioCosto)||0 : 0;
-  const editMargen = editCosto * (1 + Number(editCur?.margen || 0)/100);
+  const editMargen = Number(editCur?.precioUnitario) || U.r2(editCosto * (1 + Number(editCur?.margen || 0)/100));
   const editFinal  = editMargen * (1 - Number(editCur?.descuento || 0)/100);
 
   const inp = { width:'100%', padding:'11px 14px', borderRadius:10, border:'1.5px solid #e2e8f0', fontSize:14, color:'#1e293b', outline:'none', background:'white', fontFamily:'inherit', boxSizing:'border-box' };
@@ -299,7 +300,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.65)' }}>{items.length+' producto(s) en la factura'}</span>
           </div>
           <div style={{ padding:'18px 20px' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1.8fr 0.5fr 0.8fr 0.5fr 0.5fr auto', gap:12, alignItems:'flex-end' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1.1fr 1.6fr 0.5fr 0.7fr 0.6fr 0.5fr 0.5fr auto', gap:12, alignItems:'flex-end' }}>
 
               {/* Categoría */}
               <div>
@@ -318,7 +319,13 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
               {/* Producto */}
               <div>
                 <label style={lbl}>{'PRODUCTO'}</label>
-                <select value={cur.productoId} onChange={e=>setCur(p=>({...p,productoId:e.target.value}))}
+                <select value={cur.productoId} onChange={e=>{
+                  const pId = e.target.value;
+                  const prod = data.productos.find(p => String(p.id) === String(pId));
+                  const costo = prod ? Number(prod.precioCosto) || 0 : 0;
+                  const pUnit = U.r2(costo * (1 + Number(cur.margen)/100));
+                  setCur(p=>({...p, productoId: pId, precioUnitario: pUnit}));
+                }}
                   style={{ ...inp, cursor:'pointer' }}>
                   <option value="">{'-- Seleccionar --'}</option>
                   {selCategoria ? (
@@ -359,6 +366,35 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                 </select>
               </div>
 
+              {/* Precio Unitario */}
+              <div>
+                <label style={lbl}>{'P. UNIT ($)'}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={cur.precioUnitario || ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (/^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                      const numVal = parseFloat(String(val).replace(',', '.')) || 0;
+                      const prod = data.productos.find(p => String(p.id) === String(cur.productoId));
+                      const costo = prod ? Number(prod.precioCosto) || 0 : 0;
+                      let newMargen = 0;
+                      if (costo > 0) {
+                        newMargen = U.r2(((numVal / costo) - 1) * 100);
+                      }
+                      setCur(p => ({ ...p, precioUnitario: val, margen: newMargen }));
+                    }
+                  }}
+                  onBlur={e => {
+                    const val = e.target.value;
+                    const numVal = U.r2(parseFloat(String(val).replace(',', '.')) || 0);
+                    setCur(p => ({ ...p, precioUnitario: numVal }));
+                  }}
+                  style={inp}
+                />
+              </div>
+
               {/* Margen */}
               <div>
                 <label style={lbl} title="MARGEN DE GANANCIA: % que agregas al costo UPACA para obtener tu precio de venta">
@@ -366,7 +402,13 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                   <span style={{ display:'inline-block', width:14, height:14, borderRadius:'50%', background:'#059669', color:'white', fontSize:8, fontWeight:900, textAlign:'center', lineHeight:'14px', marginLeft:4, cursor:'help' }}>{'?'}</span>
                 </label>
                 <input type="number" min="0" max="200" value={cur.margen}
-                  onChange={e=>setCur(p=>({...p,margen:e.target.value}))}
+                  onChange={e=>{
+                    const margVal = e.target.value;
+                    const prod = data.productos.find(p => String(p.id) === String(cur.productoId));
+                    const costo = prod ? Number(prod.precioCosto) || 0 : 0;
+                    const pUnit = U.r2(costo * (1 + Number(margVal)/100));
+                    setCur(p=>({...p, margen: margVal, precioUnitario: pUnit}));
+                  }}
                   style={{ ...inp, borderColor:'rgba(5,150,105,0.4)', background:'rgba(5,150,105,0.03)' }} />
               </div>
 
@@ -414,7 +456,7 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.65)' }}>{'Editando producto agregado'}</span>
           </div>
           <div style={{ padding:'18px 20px' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1.8fr 0.5fr 0.8fr 0.5fr 0.5fr auto auto', gap:12, alignItems:'flex-end' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1.1fr 1.6fr 0.5fr 0.7fr 0.6fr 0.5fr 0.5fr auto auto', gap:12, alignItems:'flex-end' }}>
 
               {/* Categoría */}
               <div>
@@ -433,7 +475,13 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
               {/* Producto */}
               <div>
                 <label style={lbl}>{'PRODUCTO'}</label>
-                <select value={editCur?.productoId || ''} onChange={e=>setEditCur(p=>({...p,productoId:e.target.value}))}
+                <select value={editCur?.productoId || ''} onChange={e=>{
+                  const pId = e.target.value;
+                  const prod = data.productos.find(p => String(p.id) === String(pId));
+                  const costo = prod ? Number(prod.precioCosto) || 0 : 0;
+                  const pUnit = U.r2(costo * (1 + Number(editCur?.margen || 0)/100));
+                  setEditCur(p=>({...p, productoId: pId, precioUnitario: pUnit}));
+                }}
                   style={{ ...inp, cursor:'pointer' }}>
                   <option value="">{'-- Seleccionar --'}</option>
                   {selCategoria ? (
@@ -474,6 +522,35 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                 </select>
               </div>
 
+              {/* Precio Unitario */}
+              <div>
+                <label style={lbl}>{'P. UNIT ($)'}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={editCur?.precioUnitario || ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (/^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                      const numVal = parseFloat(String(val).replace(',', '.')) || 0;
+                      const prod = data.productos.find(p => String(p.id) === String(editCur?.productoId));
+                      const costo = prod ? Number(prod.precioCosto) || 0 : 0;
+                      let newMargen = 0;
+                      if (costo > 0) {
+                        newMargen = U.r2(((numVal / costo) - 1) * 100);
+                      }
+                      setEditCur(p => ({ ...p, precioUnitario: val, margen: newMargen }));
+                    }
+                  }}
+                  onBlur={e => {
+                    const val = e.target.value;
+                    const numVal = U.r2(parseFloat(String(val).replace(',', '.')) || 0);
+                    setEditCur(p => ({ ...p, precioUnitario: numVal }));
+                  }}
+                  style={inp}
+                />
+              </div>
+
               {/* Margen */}
               <div>
                 <label style={lbl} title="MARGEN DE GANANCIA: % que agregas al costo UPACA para obtener tu precio de venta">
@@ -481,7 +558,13 @@ const VentasForm = ({ onSave, onCancel, venta }) => {
                   <span style={{ display:'inline-block', width:14, height:14, borderRadius:'50%', background:'#7c3aed', color:'white', fontSize:8, fontWeight:900, textAlign:'center', lineHeight:'14px', marginLeft:4, cursor:'help' }}>{'?'}</span>
                 </label>
                 <input type="number" min="0" max="200" value={editCur?.margen || 0}
-                  onChange={e=>setEditCur(p=>({...p,margen:e.target.value}))}
+                  onChange={e=>{
+                    const margVal = e.target.value;
+                    const prod = data.productos.find(p => String(p.id) === String(editCur?.productoId));
+                    const costo = prod ? Number(prod.precioCosto) || 0 : 0;
+                    const pUnit = U.r2(costo * (1 + Number(margVal)/100));
+                    setEditCur(p=>({...p, margen: margVal, precioUnitario: pUnit}));
+                  }}
                   style={{ ...inp, borderColor:'rgba(124,58,237,0.4)', background:'rgba(124,58,237,0.03)' }} />
               </div>
 
