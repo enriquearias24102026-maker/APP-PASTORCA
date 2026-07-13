@@ -21,7 +21,7 @@ const DEFAULT_FUTURE_PRODUCTS = [
 const Dashboard = () => {
   const { 
     data, tasaBCV, tasaBCVFecha, setCurrentView, config, setConfig,
-    transfers, acceptTransfer, rejectTransfer 
+    transfers, acceptTransfer, rejectTransfer, darkMode
   } = useAppData();
 
   /* ── Future products state ── */
@@ -160,19 +160,19 @@ const Dashboard = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", color: '#0f172a' }}>
+    <div style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}>
 
       {/* ── BRAND HEADER ── */}
       <div style={{
-        background: '#ffffff', borderRadius: '18px', padding: '24px 28px',
+        background: 'var(--bg-card)', borderRadius: '18px', padding: '24px 28px',
         marginBottom: '24px', boxShadow: '0 2px 12px rgba(15,23,42,0.06)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-color)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <img src="/logo-upaca.png" alt="UPACA" style={{ height: 48, objectFit: 'contain' }} />
-            <div style={{ width: '2px', height: '36px', background: '#e2e8f0' }} />
+            <div style={{ width: '2px', height: '36px', background: 'var(--border-color)' }} />
             <img
               src={config?.logoUrl || '/logo-marcosbarco.png'}
               alt="Logo Empresa"
@@ -181,9 +181,9 @@ const Dashboard = () => {
             />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 600 }}>Administración Financiera</div>
-            <div style={{ fontSize: '22px', fontWeight: 800, color: '#1e40af' }}>UPACA → PASTORCA</div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Rep. Ventas: <strong style={{ color: '#1e40af' }}>MARCOS BARCO</strong></div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 600 }}>Administración Financiera</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--accent-blue-light)' }}>UPACA → PASTORCA</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Rep. Ventas: <strong style={{ color: 'var(--accent-blue-light)' }}>MARCOS BARCO</strong></div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
@@ -194,7 +194,7 @@ const Dashboard = () => {
           ].map(s => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: 800, color: s.color }}>{s.val}</div>
-              <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.5px' }}>{s.label}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px' }}>{s.label}</div>
             </div>
           ))}
 

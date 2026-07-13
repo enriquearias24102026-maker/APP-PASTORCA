@@ -102,6 +102,27 @@ export const AppDataProvider = ({ uid, children }) => {
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; }, [config]);
 
+  // ── Global Dark Mode state & synchronization ──
+  const [darkMode, setDarkModeState] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  const toggleDarkMode = () => {
+    setDarkModeState(prev => {
+      const newVal = !prev;
+      localStorage.setItem('theme', newVal ? 'dark' : 'light');
+      return newVal;
+    });
+  };
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   // ── Listener Settings ──
   useEffect(() => {
     if (!uid) return;
@@ -303,7 +324,8 @@ export const AppDataProvider = ({ uid, children }) => {
     config, setConfig,
     shareData, triggerShare, closeShare,
     printData, triggerPrint,
-    transfers: [], loadingTrans: false
+    transfers: [], loadingTrans: false,
+    darkMode, toggleDarkMode
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -3,7 +3,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
-  const { currentView, setCurrentView, tasaBCV, tasaBCVFecha, setTasaBCV } = useAppData();
+  const { currentView, setCurrentView, tasaBCV, tasaBCVFecha, setTasaBCV, darkMode, toggleDarkMode } = useAppData();
   const { user, profile, logout } = useAuth();
   const [dateStr, setDateStr] = useState('');
   const [editingTasa, setEditingTasa] = useState(false);
@@ -130,10 +130,42 @@ const Header = () => {
           )}
         </div>
 
-        <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }} />
+        {/* Interruptor de Tema (Claro/Oscuro) */}
+        <button
+          onClick={toggleDarkMode}
+          title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '20px',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.25s ease',
+            marginRight: '8px',
+            color: darkMode ? '#facc15' : '#475569',
+            backgroundColor: darkMode ? 'rgba(250, 204, 21, 0.1)' : 'rgba(71, 85, 105, 0.05)',
+            border: darkMode ? '1px solid rgba(250, 204, 21, 0.2)' : '1px solid rgba(71, 85, 105, 0.1)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.15) rotate(15deg)';
+            e.currentTarget.style.backgroundColor = darkMode ? 'rgba(250, 204, 21, 0.2)' : 'rgba(71, 85, 105, 0.1)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+            e.currentTarget.style.backgroundColor = darkMode ? 'rgba(250, 204, 21, 0.1)' : 'rgba(71, 85, 105, 0.05)';
+          }}
+        >
+          {darkMode ? '☀️' : '🌙'}
+        </button>
+
+        <div style={{ width: '1px', height: '30px', background: 'var(--border-color)' }} />
 
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '11px', fontWeight: '700', color: '#0f172a' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
             {profile?.nombreCompleto || user?.displayName || 'Usuario'}
           </div>
           <div style={{ fontSize: '10px', color: '#94a3b8' }}>

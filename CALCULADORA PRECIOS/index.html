@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Precios Stripe Pro</title>
+  <meta name="description" content="Calculadora avanzada de precios de venta y ganancia real en dólares, optimizada para comisiones de Stripe y márgenes personalizables.">
+  
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons for premium feel -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* VARIABLES DE DISEÑO & PALETA DE COLORES PREMIUM */
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(17, 25, 40, 0.75);
+      --bg-input: rgba(30, 41, 59, 0.4);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      
+      --color-primary: #6366f1; /* Indigo */
+      --color-primary-glow: rgba(99, 102, 241, 0.15);
+      --color-accent: #a855f7; /* Purple/Violet */
+      --color-success: #10b981; /* Emerald */
+      --color-success-glow: rgba(16, 185, 129, 0.15);
+      --color-text-main: #f8fafc;
+      --color-text-muted: #94a3b8;
+      
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ESTILOS GLOBALES */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--color-text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow-x: hidden;
+      padding: 20px;
+    }
+
+    /* ORBES DE FONDO GLOWING (Efecto de diseño premium) */
+    .glow-orb {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: 0;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .orb-1 {
+      top: -10%;
+      left: 10%;
+      background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+      animation: float-slow 20s infinite ease-in-out;
+    }
+
+    .orb-2 {
+      bottom: -10%;
+      right: 10%;
+      background: radial-gradient(circle, var(--color-accent) 0%, transparent 70%);
+      animation: float-slow 25s infinite ease-in-out alternate;
+    }
+
+    @keyframes float-slow {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, -60px) scale(1.1); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    /* CONTENEDOR PRINCIPAL */
+    .app-container {
+      width: 100%;
+      max-width: 960px;
+      z-index: 1;
+      position: relative;
+    }
+
+    /* LOGO Y CABECERA */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.8rem;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .header-logo i {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+      -webkit-background-clip: initial;
+      -webkit-text-fill-color: initial;
+      color: var(--color-primary);
+    }
+
+    .header-subtitle {
+      font-size: 0.95rem;
+      color: var(--color-text-muted);
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* CARD DE LA CALCULADORA */
+    .calc-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      overflow: hidden;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @media (max-width: 768px) {
+      .calc-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* SECCIÓN IZQUIERDA: INPUTS */
+    .inputs-panel {
+      padding: 40px;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .inputs-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 30px 24px;
+      }
+    }
+
+    /* SELECTORES DE MODO Y CONTROLES */
+    .mode-selector {
+      display: flex;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      padding: 4px;
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .mode-option {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .mode-option input {
+      display: none;
+    }
+
+    .mode-option label {
+      display: block;
+      padding: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: var(--transition-smooth);
+    }
+
+    .mode-option input:checked + label {
+      color: var(--color-text-main);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* INPUT GROUPS */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      transition: var(--transition-smooth);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 4px var(--color-primary-glow);
+    }
+
+    .input-icon-left {
+      position: absolute;
+      left: 16px;
+      color: var(--color-text-muted);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-field {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 16px 16px 16px 44px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text-main);
+      font-family: var(--font-body);
+    }
+
+    /* Desactivar flechas en inputs numéricos */
+    .input-field::-webkit-outer-spin-button,
+    .input-field::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .input-field[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    .input-suffix {
+      padding-right: 16px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--color-text-muted);
+    }
+
+    /* RANGES & SLIDERS PERSONALIZADOS */
+    .slider-container {
+      margin-top: 6px;
+    }
+
+    .custom-range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      transition: var(--transition-smooth);
+    }
+
+    .custom-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+      transition: var(--transition-smooth);
+    }
+
+    .custom-range::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* FILA DOBLE DE CONFIGURACIÓN */
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .config-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* SWITCH / TOGGLE PERSONALIZADO */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+      transition: var(--transition-smooth);
+    }
+
+    .toggle-container:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .toggle-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toggle-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-text-main);
+    }
+
+    .toggle-desc {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.15);
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* BOTÓN CALCULAR ACCIONABLE */
+    .btn-calculate {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-calculate::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: 0.5s;
+    }
+
+    .btn-calculate:hover::before {
+      left: 100%;
+    }
+
+    .btn-calculate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-calculate:active {
+      transform: translateY(1px);
+    }
+
+    /* SECCIÓN DERECHA: RESULTADOS */
+    .results-panel {
+      background: rgba(10, 15, 30, 0.6);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 32px;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      .results-panel {
+        padding: 30px 24px;
+      }
+    }
+
+    /* TARGETAS DE RESULTADOS PRINCIPALES */
+    .result-card-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .price-box {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition-smooth);
+    }
+
+    .price-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    }
+
+    .price-box:hover {
+      transform: scale(1.02);
+      border-color: rgba(168, 85, 247, 0.4);
+      box-shadow: 0 12px 30px rgba(168, 85, 247, 0.15);
+    }
+
+    .profit-box {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition-smooth);
+    }
+
+    .profit-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--color-success);
+    }
+
+    .profit-box:hover {
+      transform: scale(1.02);
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.15);
+    }
+
+    .box-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .box-value {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      transition: var(--transition-smooth);
+    }
+
+    .price-box .box-value {
+      background: linear-gradient(135deg, #ffffff, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .profit-box .box-value {
+      color: #34d399; /* Emerald dynamic */
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    /* DYNAMIC DISTRIBUCION BAR (PREMIUM LOOK) */
+    .distribution-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dist-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .dist-bar {
+      height: 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dist-segment {
+      height: 100%;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .segment-cost {
+      background-color: var(--color-text-muted);
+    }
+
+    .segment-stripe {
+      background-color: var(--color-accent);
+    }
+
+    .segment-profit {
+      background-color: var(--color-success);
+    }
+
+    .dist-legend {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+
+    .legend-color {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    /* DETALLES DE DESGLOSE */
+    .breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 20px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    .breakdown-row strong {
+      color: var(--color-text-main);
+    }
+
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--color-text-main);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ELEMENTOS DE ALERTA O ERROR */
+    .alert-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* ANIMACIONES */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse-animation {
+      animation: pulse-glow 0.4s ease-out;
+    }
+
+    @keyframes pulse-glow {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); filter: brightness(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* PIE DE PÁGINA */
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      z-index: 1;
+    }
+
+    .footer a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ORBES GLOWING DE FONDO -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <div class="app-container">
+    
+    <!-- CABECERA -->
+    <header class="header">
+      <div class="header-logo">
+        <i data-lucide="calculator"></i>
+        <span>Stripe Calc Pro</span>
+      </div>
+      <p class="header-subtitle">
+        Calculadora inteligente de precios y ganancias en dólares. Optimiza tus cobros y comisiones.
+      </p>
+    </header>
+
+    <!-- CALCULADORA CARD -->
+    <main class="calc-card">
+      
+      <!-- SECCIÓN IZQUIERDA: INPUTS -->
+      <section class="inputs-panel">
+        
+        <!-- SELECTOR DE MODO -->
+        <div class="input-group">
+          <span class="input-label">
+            <i data-lucide="percent"></i>
+            Estrategia de Precio
+          </span>
+          <div class="mode-selector">
+            <div class="mode-option">
+              <input type="radio" id="mode-markup" name="calc-mode" value="markup" checked>
+              <label for="mode-markup">Markup (% del Costo)</label>
+            </div>
+            <div class="mode-option">
+              <input type="radio" id="mode-margin" name="calc-mode" value="margin">
+              <label for="mode-margin">Margen (% de Venta)</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- INPUT 1: COSTO DEL PRODUCTO -->
+        <div class="input-group">
+          <div class="input-header">
+            <label for="cost" class="input-label">
+              <i data-lucide="dollar-sign"></i>
+              Costo del Producto
+            </label>
+          </div>
+          <div class="input-wrapper">
+            <span class="input-icon-left"><i data-lucide="coins"></i></span>
+            <input type="number" id="cost" class="input-field" placeholder="0.00" value="100.00" min="0" step="0.01">
+            <span class="input-suffix">USD</span>
+          </div>
+        </div>
+
+        <!-- INPUT 2: PORCENTAJE DE GANANCIA -->
+        <div class="input-group">
+          <div class="input-header">
+            <label for="profit" class="input-label">
+              <i data-lucide="trending-up"></i>
+              Ganancia Deseada
+            </label>
+            <span class="input-suffix" id="profit-badge" style="color: var(--color-primary); font-weight: 700;">20%</span>
+          </div>
+          <div class="input-wrapper">
+            <span class="input-icon-left"><i data-lucide="percent"></i></span>
+            <input type="number" id="profit" class="input-field" placeholder="0" value="20" min="0" max="99" step="0.5">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="profit-slider" class="custom-range" min="0" max="95" value="20" step="1">
+          </div>
+        </div>
+
+        <!-- GRID DE CONFIGURACIÓN AVANZADA -->
+        <div class="config-grid">
+          
+          <!-- INPUT 3: COMISIÓN STRIPE -->
+          <div class="input-group">
+            <div class="input-header">
+              <label for="stripe-pct" class="input-label">
+                <i data-lucide="credit-card"></i>
+                Comisión Stripe
+              </label>
+            </div>
+            <div class="input-wrapper">
+              <span class="input-icon-left"><i data-lucide="percent"></i></span>
+              <input type="number" id="stripe-pct" class="input-field" placeholder="3.5" value="3.5" min="0" max="20" step="0.1">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+
+          <!-- TOGGLE: TARIFA FIJA STRIPE -->
+          <div class="toggle-container">
+            <div class="toggle-info">
+              <span class="toggle-title">Fijo de Stripe</span>
+              <span class="toggle-desc">+$0.30 por transac.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="stripe-fixed-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+        </div>
+
+        <!-- BOTÓN ACCIONABLE -->
+        <button id="btn-calc" class="btn-calculate">
+          <i data-lucide="sparkles"></i>
+          Calcular Precio Final
+        </button>
+
+        <!-- AVISO DE ERROR -->
+        <div id="alert-error" class="alert-box">
+          <i data-lucide="alert-triangle"></i>
+          <span id="alert-msg">Por favor, revisa los porcentajes ingresados.</span>
+        </div>
+
+      </section>
+
+      <!-- SECCIÓN DERECHA: RESULTADOS -->
+      <section class="results-panel">
+        
+        <div class="result-card-main">
+          
+          <!-- PRECIO DE VENTA FINAL -->
+          <div class="price-box" id="price-box">
+            <div class="box-label">Precio de Venta Final</div>
+            <div class="box-value" id="res-selling-price">$0.00</div>
+          </div>
+
+          <!-- GANANCIA REAL -->
+          <div class="profit-box" id="profit-box">
+            <div class="box-label">Ganancia Real</div>
+            <div class="box-value" id="res-real-profit">$0.00</div>
+          </div>
+
+        </div>
+
+        <!-- DESGLOSE GRÁFICO (DISTRIBUCIÓN BAR) -->
+        <div class="distribution-container">
+          <div class="dist-label">Estructura del Precio de Venta</div>
+          <div class="dist-bar">
+            <div class="dist-segment segment-cost" id="bar-cost" style="width: 50%;"></div>
+            <div class="dist-segment segment-stripe" id="bar-stripe" style="width: 10%;"></div>
+            <div class="dist-segment segment-profit" id="bar-profit" style="width: 40%;"></div>
+          </div>
+          <div class="dist-legend">
+            <div class="legend-item">
+              <div class="legend-color segment-cost"></div>
+              <span>Costo</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color segment-stripe"></div>
+              <span>Stripe</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color segment-profit"></div>
+              <span>Ganancia</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTADO DE DETALLES -->
+        <div class="breakdown-list">
+          <div class="breakdown-row">
+            <span>Costo del Producto:</span>
+            <strong id="det-cost">$0.00</strong>
+          </div>
+          <div class="breakdown-row">
+            <span>Comisión de Stripe:</span>
+            <strong id="det-stripe">$0.00</strong>
+          </div>
+          <div class="breakdown-row">
+            <span>Retorno de Venta Neto:</span>
+            <strong id="det-net">$0.00</strong>
+          </div>
+          <button id="btn-copy-res" class="btn-copy">
+            <i data-lucide="copy"></i>
+            Copiar Resumen de Precio
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="footer">
+      Calculadora de Precios en Dólares © 2026 | Optimización de cobros y comisiones.
+    </footer>
+
+  </div>
+
+  <script>
+    // INICIALIZACIÓN DE ICONOS
+    lucide.createIcons();
+
+    // DOM ELEMENTS
+    const costInput = document.getElementById('cost');
+    const profitInput = document.getElementById('profit');
+    const profitSlider = document.getElementById('profit-slider');
+    const profitBadge = document.getElementById('profit-badge');
+    
+    const stripePctInput = document.getElementById('stripe-pct');
+    const stripeFixedToggle = document.getElementById('stripe-fixed-toggle');
+    const modeMarkupRadio = document.getElementById('mode-markup');
+    const modeMarginRadio = document.getElementById('mode-margin');
+    
+    const btnCalc = document.getElementById('btn-calc');
+    const btnCopy = document.getElementById('btn-copy-res');
+    
+    const resSellingPrice = document.getElementById('res-selling-price');
+    const resRealProfit = document.getElementById('res-real-profit');
+    
+    const detCost = document.getElementById('det-cost');
+    const detStripe = document.getElementById('det-stripe');
+    const detNet = document.getElementById('det-net');
+    
+    const barCost = document.getElementById('bar-cost');
+    const barStripe = document.getElementById('bar-stripe');
+    const barProfit = document.getElementById('bar-profit');
+    
+    const priceBox = document.getElementById('price-box');
+    const profitBox = document.getElementById('profit-box');
+    
+    const alertError = document.getElementById('alert-error');
+    const alertMsg = document.getElementById('alert-msg');
+
+    // LOGICA DE CALCULO
+    function calculate() {
+      // Obtener y sanitizar valores
+      const cost = Math.max(0, parseFloat(costInput.value) || 0);
+      const profitPct = (Math.max(0, parseFloat(profitInput.value) || 0)) / 100;
+      const stripePct = (Math.max(0, parseFloat(stripePctInput.value) || 0)) / 100;
+      const stripeFixed = stripeFixedToggle.checked ? 0.30 : 0;
+      
+      const isMarginMode = modeMarginRadio.checked;
+      
+      let sellingPrice = 0;
+      let stripeFee = 0;
+      let realProfit = 0;
+      let netReturn = 0;
+
+      // Ocultar alerta por defecto
+      alertError.style.display = 'none';
+
+      if (isMarginMode) {
+        // Modo Margen sobre Venta:
+        // S = (C + tarifa_fija) / (1 - %_stripe - %_ganancia)
+        const divisor = 1 - stripePct - profitPct;
+        if (divisor > 0) {
+          sellingPrice = (cost + stripeFixed) / divisor;
+        } else {
+          showError("El margen de ganancia + comisión de Stripe no pueden superar el 100%.");
+          return;
+        }
+      } else {
+        // Modo Markup sobre Costo:
+        // S = (C * (1 + %_ganancia) + tarifa_fija) / (1 - %_stripe)
+        const divisor = 1 - stripePct;
+        if (divisor > 0) {
+          sellingPrice = ((cost * (1 + profitPct)) + stripeFixed) / divisor;
+        } else {
+          showError("La comisión de Stripe no puede superar o ser igual al 100%.");
+          return;
+        }
+      }
+
+      // Calcular comisiones y retornos reales
+      stripeFee = (sellingPrice * stripePct) + stripeFixed;
+      netReturn = sellingPrice - stripeFee;
+      realProfit = netReturn - cost;
+
+      // Si los números son válidos y finitos
+      if (isFinite(sellingPrice) && sellingPrice >= 0) {
+        updateUI(sellingPrice, realProfit, cost, stripeFee, netReturn);
+      } else {
+        showError("Valores de entrada inválidos para el cálculo.");
+      }
+    }
+
+    function showError(message) {
+      alertMsg.textContent = message;
+      alertError.style.display = 'flex';
+      
+      // Reiniciar resultados visuales a 0
+      resSellingPrice.textContent = "$0.00";
+      resRealProfit.textContent = "$0.00";
+      detCost.textContent = "$0.00";
+      detStripe.textContent = "$0.00";
+      detNet.textContent = "$0.00";
+      
+      barCost.style.width = "0%";
+      barStripe.style.width = "0%";
+      barProfit.style.width = "0%";
+    }
+
+    // ANIMACIÓN DE CONTEO Y ACTUALIZACIÓN DE UI
+    function updateUI(sellingPrice, realProfit, cost, stripeFee, netReturn) {
+      // Formateador de moneda USD
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      // Actualizar valores en texto
+      resSellingPrice.textContent = formatter.format(sellingPrice);
+      resRealProfit.textContent = formatter.format(realProfit);
+      
+      detCost.textContent = formatter.format(cost);
+      detStripe.textContent = formatter.format(stripeFee);
+      detNet.textContent = formatter.format(netReturn);
+
+      // Calcular porcentajes para la barra de distribución
+      // Si el precio de venta final es 0, no pintar distribución
+      if (sellingPrice > 0) {
+        const costPct = (cost / sellingPrice) * 100;
+        const stripePct = (stripeFee / sellingPrice) * 100;
+        const profitPct = (realProfit / sellingPrice) * 100;
+
+        barCost.style.width = `${costPct}%`;
+        barStripe.style.width = `${stripePct}%`;
+        barProfit.style.width = `${profitPct}%`;
+      } else {
+        barCost.style.width = `0%`;
+        barStripe.style.width = `0%`;
+        barProfit.style.width = `0%`;
+      }
+
+      // Añadir efectos visuales de pulso en las cajas principales
+      priceBox.classList.remove('pulse-animation');
+      profitBox.classList.remove('pulse-animation');
+      void priceBox.offsetWidth; // trigger reflow
+      void profitBox.offsetWidth; // trigger reflow
+      priceBox.classList.add('pulse-animation');
+      profitBox.classList.add('pulse-animation');
+    }
+
+    // SINCRONIZAR SLIDERS E INPUTS
+    function syncProfitFromSlider() {
+      profitInput.value = profitSlider.value;
+      profitBadge.textContent = `${profitSlider.value}%`;
+      calculate();
+    }
+
+    function syncProfitFromInput() {
+      let val = parseFloat(profitInput.value);
+      if (isNaN(val)) val = 0;
+      if (val < 0) val = 0;
+      if (val > 99) val = 99; // Cap para mantener coherencia en UI
+      
+      profitSlider.value = val;
+      profitBadge.textContent = `${val}%`;
+      calculate();
+    }
+
+    // EVENT LISTENERS
+    profitSlider.addEventListener('input', syncProfitFromSlider);
+    profitInput.addEventListener('input', syncProfitFromInput);
+    
+    // Escuchar cambios en otros inputs para cálculo automático en tiempo real
+    costInput.addEventListener('input', calculate);
+    stripePctInput.addEventListener('input', calculate);
+    stripeFixedToggle.addEventListener('change', calculate);
+    
+    document.querySelectorAll('input[name="calc-mode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        // Cambiar etiquetas según el modo para guiar al usuario
+        const badgeLabel = modeMarginRadio.checked ? "Margen Deseado" : "Markup Deseado";
+        calculate();
+      });
+    });
+
+    // Botón de Calcular (agrega feedback visual explícito)
+    btnCalc.addEventListener('click', () => {
+      calculate();
+      // Crear un pequeño efecto de brillo/pulso al hacer click
+      btnCalc.style.transform = 'scale(0.98)';
+      setTimeout(() => {
+        btnCalc.style.transform = 'translateY(-2px)';
+      }, 100);
+    });
+
+    // Botón de Copiar Resumen
+    btnCopy.addEventListener('click', () => {
+      const modeText = modeMarginRadio.checked ? 'Margen sobre Venta' : 'Markup sobre Costo';
+      const textToCopy = `Resumen del Cálculo de Precio:
+----------------------------------------
+Modo de Cálculo: ${modeText}
+Costo del Producto: ${detCost.textContent}
+Ganancia Deseada: ${profitInput.value}%
+Precio de Venta Final: ${resSellingPrice.textContent}
+Comisión Stripe: ${detStripe.textContent}
+Ganancia Real: ${resRealProfit.textContent}
+----------------------------------------
+Calculado con Stripe Calc Pro`;
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalHTML = btnCopy.innerHTML;
+        btnCopy.innerHTML = '<i data-lucide="check"></i> ¡Copiado con éxito!';
+        btnCopy.style.background = 'rgba(16, 185, 129, 0.15)';
+        btnCopy.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        lucide.createIcons();
+
+        setTimeout(() => {
+          btnCopy.innerHTML = originalHTML;
+          btnCopy.style.background = 'rgba(255, 255, 255, 0.05)';
+          btnCopy.style.borderColor = 'var(--border-color)';
+          lucide.createIcons();
+        }, 2000);
+      }).catch(err => {
+        console.error('Error al copiar texto: ', err);
+      });
+    });
+
+    // Cálculo inicial
+    calculate();
+  </script>
+</body>
+</html>
